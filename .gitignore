@@ -1,0 +1,11 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+Categorical MpgDS
+Categorical TitanicDS
+Continuous DiamondsDS
+Continuous CO2
+Continuous TimeSeries StormsDS
+DescriptiveStats-usecase.R
+/StormsDS

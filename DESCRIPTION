@@ -1,0 +1,40 @@
+Package: DescriptiveStatsR
+Type: Package
+Title: Descriptive Statistics, Statistical Inference and Plots, easily and for any DataFrame
+Version: 0.1.0
+Author: c(
+	person("Ioannis", "Mamalikidis", email = "Giannis_Mamalikidis@msn.com", role = c("aut", "cre"))
+	)
+Description: This package allows you to easily create and save a wide range of Statistical analyses that can help you delve deeper into your dataset and understand it better.
+    Works for any DataFrame, no special treatment needed - just call the function.
+    Retrieve a table of the Categorical Variables that enumerates their values and Frequency percentage of each.
+    A table of the Min, Q1, Mean, Median, Max, SD, IQR, Observations, NAs for each numerical variable
+    Tables of the Pearson and Spearman Correlations of the variables, in original order or ordered using a statistic, like PCA to make better groups
+    Tables of the Pearson and Spearman Correlations' p-values, so that you can differentiate between statistically significant correlations or not
+    These tables also come as a beautiful plot with Strong positive correlations drawn red, whilst strong negative ones, blue, and non-statistically significant are crossed out with an 'X'.
+    The Categorical Distributions are plotted through a Bar chart
+    The Numerical Distributions are plotted as Histograms with a Density plot overlayed, and there is a separate Boxplot graph as well
+    When the Dependent Variable is Numerical, the 'Numerical Independent VS Dependent' are depicted as a scatter plot,
+    and the 'Categorical Independent VS Dependent' are the distribution of the Dependent variable by a boxplot for each category
+    When the Dependent variable is Categorical, the 'Numerical Independent VS Dependent' are boxplots of the Independent's distribution for each category,
+    and the 'Categorical Independent VS Dependent' are stacked Barplots
+    Lastly, for Time-Series data, you can see the data's behaviour over time
+URL: https://www.NihilisTsLab.com
+License: Read the License file
+Encoding: UTF-8
+LazyData: true
+Depends:
+	R (>= 3.3.0),
+	magrittr (>= 1.5),
+	tibble (>= 1.4.2),
+	dplyr (>= 0.7.8),
+	tidyr (>= 1.0.0),
+	lubridate (>= 1.7.4),
+	gridExtra (>= 2.3),
+	data.table (>= 1.12.8),
+	tractor.base (>= 3.2.2),
+	ggcorrplot (>= 0.1.3),
+	seriation (>= 1.2.8),
+	kader (>= 0.0.8)
+	purrr (>= 0.3.3)
+RoxygenNote: 7.0.2

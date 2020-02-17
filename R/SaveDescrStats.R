@@ -1,0 +1,308 @@
+#' Saves all the components of the output of DescriptiveStats() to a specified folder
+#'
+#' Gets the output of DescriptiveStats() and no matter what options were selected, saves in a specified folder all the valid Statistics
+#' Saving the plots, one might also choose different sizes for the Categorical plots, Numerical ones, and Timeseries as well.
+#' @param DefaultToExclude A Boolean. If TRUE, every non-ID and non-FK column will default to Include == FALSE, unless ExcludeIdentities or ExcludeForeignKeys is set to TRUE
+#' @keywords Save Descriptive Statistics SaveDescrStats
+#' @export
+#' @examples
+#' DS <- mtcars %>% mutate(vs = as.factor(vs), am = as.factor(am), gear = as.factor(gear), carb = as.factor(carb)) %>% as_tibble()
+#'
+#' #Creating the Variable which holds all the Matrices and Plots
+#' MTCarsStats <- DS %>% DescriptiveStats(CalculateGraphs = TRUE, DependentVar = "mpg", IsTimeSeries = TRUE, GroupBy = "gear", CorrVarOrder = "PCA")
+#'
+#' #Saving everything to a folder on our Hard Drive
+#' MTCarsStats %>% SaveDescrStats("MTCarsFolder")
+SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, NumHeight = 800, CatWidth = 400, CatHeight = 400, TimeSeriesWidth = NULL, TimeSeriesHeight = NULL) {
+  try(dir.create(file.path(GetParentDir(GetParentDir(path_stats)), GetFileNamesAlone(GetParentDir(path_stats))), showWarnings = FALSE))
+  try(dir.create(file.path(GetParentDir(path_stats), GetFileNamesAlone(path_stats)), showWarnings = FALSE))
+
+  if (is.not.null(DescriptiveStatsVar$PerGroupDescrStats)) {
+    for (CurGroup in names(DescriptiveStatsVar$PerGroupDescrStats)) {
+      SaveDescrStats(DescriptiveStatsVar$PerGroupDescrStats[[CurGroup]],
+                       path_stats = paste0(file.path(path_stats, "Per Group/", CurGroup), "/"),
+                       NumWidth = NumWidth,
+                       NumHeight = NumHeight,
+                       CatWidth = CatWidth,
+                       CatHeight = CatHeight,
+                       TimeSeriesWidth = TimeSeriesWidth,
+                       TimeSeriesHeight = TimeSeriesHeight
+      )
+    }
+  }
+
+  if (Right(path_stats, 1) != "/" & Right(path_stats, 1) != "\\") path_stats <- paste0(path_stats, "/")
+  if (is.null(TimeSeriesWidth)) TimeSeriesWidth <- (NumWidth * 1.5)
+  if (is.null(TimeSeriesHeight)) TimeSeriesHeight <- (NumHeight * 1.25)
+
+  if(NROW(DescriptiveStatsVar$NumericDescriptives) > 0) write.csv(DescriptiveStatsVar$NumericDescriptives, paste0(path_stats, "Numerical Descriptives.csv"), row.names = FALSE)
+  if(is.not.null(DescriptiveStatsVar$CategoricalDescriptives)) write.csv(DescriptiveStatsVar$CategoricalDescriptives, paste0(path_stats, "Categorical Descriptives.csv"), row.names = FALSE)
+
+  if(is.not.null(DescriptiveStatsVar$PearsonCor)) write.csv(DescriptiveStatsVar$PearsonCor, paste0(path_stats, "Pearson Cor.csv"), row.names = FALSE)
+  if (is.not.null(DescriptiveStatsVar$PearsonCorPVal)) write.csv(DescriptiveStatsVar$PearsonCorPVal, paste0(path_stats, "Pearson Cor p-Value.csv"), row.names = FALSE)
+  if (is.not.null(DescriptiveStatsVar$PearsonCorOrdered)) write.csv(DescriptiveStatsVar$PearsonCorOrdered, paste0(path_stats, "Pearson Cor Ordered.csv"), row.names = FALSE)
+  if (is.not.null(DescriptiveStatsVar$PearsonCorOrderedPVal)) write.csv(DescriptiveStatsVar$PearsonCorOrderedPVal, paste0(path_stats, "Pearson Cor Ordered p-Value.csv"), row.names = FALSE)
+
+  if (is.not.null(DescriptiveStatsVar$PearsonCorPlot)) {
+    tryCatch({
+      png(paste0(path_stats, "Perason Cor.png"), width = (NumHeight * 0.56), height = (NumHeight * 0.56), units = "px")
+      print(DescriptiveStatsVar$PearsonCorPlot)
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+
+  if (is.not.null(DescriptiveStatsVar$PearsonCorOrderedPlot)) {
+    tryCatch({
+      png(paste0(path_stats, "Perason Cor Ordered.png"), width = (NumHeight * 0.56), height = (NumHeight * 0.56), units = "px")
+      print(DescriptiveStatsVar$PearsonCorOrderedPlot)
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+
+  if (is.not.null(DescriptiveStatsVar$SpearmanCor)) write.csv(DescriptiveStatsVar$SpearmanCor, paste0(path_stats, "Spearman Cor.csv"), row.names = FALSE)
+  if (is.not.null(DescriptiveStatsVar$SpearmanCorPVal)) write.csv(DescriptiveStatsVar$SpearmanCorPVal, paste0(path_stats, "Spearman Cor p-value.csv"), row.names = FALSE)
+  if (is.not.null(DescriptiveStatsVar$SpearmanCorOrdered)) write.csv(DescriptiveStatsVar$SpearmanCorOrdered, paste0(path_stats, "Spearman Cor Ordered.csv"), row.names = FALSE)
+  if (is.not.null(DescriptiveStatsVar$SpearmanCorOrderedPVal)) write.csv(DescriptiveStatsVar$SpearmanCorOrderedPVal, paste0(path_stats, "Spearman Cor Ordered p-Value.csv"), row.names = FALSE)
+
+  if (is.not.null(DescriptiveStatsVar$SpearmanCorPlot)) {
+    tryCatch({
+      png(paste0(path_stats, "Spearman Cor.png"), width = (NumHeight * 0.56), height = (NumHeight * 0.56), units = "px")
+      print(DescriptiveStatsVar$SpearmanCorPlot)
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+
+  if (is.not.null(DescriptiveStatsVar$SpearmanCorOrderedPlot)) {
+    tryCatch({
+      png(paste0(path_stats, "Spearman Cor Ordered.png"), width = (NumHeight * 0.56), height = (NumHeight * 0.56), units = "px")
+      print(DescriptiveStatsVar$SpearmanCorOrderedPlot)
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+
+  #-- Looking at distributions --#
+  ### Histograms and Density of Numerical Variables
+  if (NROW(DescriptiveStatsVar$NumericDistrGraphs) > 0) {
+    tryCatch({
+      png(paste0(path_stats, "Numerical Distrubutions.png"), width = NumWidth, height = NumHeight, units = "px")
+      suppressWarnings(
+        grid.arrange(grobs = lapply(names(DescriptiveStatsVar$NumericDistrGraphs), function(x) {
+          ggplotGrob(DescriptiveStatsVar$NumericDistrGraphs[[x]])
+        }),
+        nrow = round(sqrt(NROW(names(DescriptiveStatsVar$NumericDistrGraphs)))))
+      )
+    }, warning = function(w) {
+      cat("Warning:\n")
+      print(w)
+    }, error = function(e) {
+      cat("Error:\n")
+      print(e)
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+  if (NROW(DescriptiveStatsVar$NumericDistrGraphsPerGroup) > 0) {
+    PerGroupNames <- names(DescriptiveStatsVar$NumericDistrGraphsPerGroup)
+    for (CurName in PerGroupNames) {
+      try(dir.create(file.path(path_stats, "Numerical Distrubutions Per Group"), showWarnings = FALSE))
+      tryCatch({
+        png(paste0(path_stats, "Numerical Distrubutions Per Group/", CurName, ".png"), width = NumWidth, height = NumHeight, units = "px")
+        suppressWarnings(
+          grid.arrange(grobs = lapply(names(DescriptiveStatsVar$NumericDistrGraphsPerGroup[[CurName]]), function(x) {
+            ggplotGrob(DescriptiveStatsVar$NumericDistrGraphsPerGroup[[CurName]][[x]])
+          }),
+          nrow = round(sqrt(NROW(names(DescriptiveStatsVar$NumericDistrGraphsPerGroup[[CurName]])))))
+        )
+      }, warning = function(w) {
+        cat("Warning:\n")
+        print(w)
+      }, error = function(e) {
+        cat("Error:\n")
+        print(e)
+      }, finally = {
+        try(dev.off(), silent = TRUE)
+      })
+    }
+  }
+
+  ### Boxplot for Numerical Variables
+  if (NROW(DescriptiveStatsVar$BoxplotGraphs) > 0) {
+    tryCatch({
+      png(paste0(path_stats, "Numerical Boxplots.png"), width = NumWidth, height = NumHeight, units = "px")
+      suppressWarnings(
+        grid.arrange(grobs = lapply(names(DescriptiveStatsVar$BoxplotGraphs), function(x) {
+          ggplotGrob(DescriptiveStatsVar$BoxplotGraphs[[x]])
+        }),
+        nrow = round(sqrt(NROW(names(DescriptiveStatsVar$BoxplotGraphs)))))
+      )
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+  if (NROW(DescriptiveStatsVar$BoxplotGraphsPerGroup) > 0) {
+    PerGroupNames <- names(DescriptiveStatsVar$BoxplotGraphsPerGroup)
+    for (CurName in PerGroupNames) {
+      try(dir.create(file.path(path_stats, "Boxplot Graphs Per Group"), showWarnings = FALSE))
+      tryCatch({
+        png(paste0(path_stats, "Boxplot Graphs Per Group/", CurName, ".png"), width = NumWidth, height = NumHeight, units = "px")
+        print(DescriptiveStatsVar$BoxplotGraphsPerGroup[[CurName]])
+      }, warning = function(w) {
+        cat("Warning:\n")
+        print(w)
+      }, error = function(e) {
+        cat("Error:\n")
+        print(e)
+      }, finally = {
+        try(dev.off(), silent = TRUE)
+      })
+    }
+  }
+
+  ### Bar Charts for Categorical Variables
+  if (NROW(DescriptiveStatsVar$BarChartGraphs) > 0) {
+    tryCatch({
+      png(paste0(path_stats, "Categorical Distributions.png"), width = CatWidth, height = CatHeight, units = "px")
+      suppressWarnings(
+        grid.arrange(grobs = lapply(names(DescriptiveStatsVar$BarChartGraphs)[names(DescriptiveStatsVar$BarChartGraphs) %notin% "Participant"], function(x) {
+          ggplotGrob(DescriptiveStatsVar$BarChartGraphs[[x]])
+        }),
+        nrow = round(sqrt(NROW(names(DescriptiveStatsVar$BarChartGraphs)[names(DescriptiveStatsVar$BarChartGraphs) %notin% "Participant"]))))
+      )
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+  if (NROW(DescriptiveStatsVar$BarChartGraphsPerGroup) > 0) {
+    PerGroupNames <- names(DescriptiveStatsVar$BarChartGraphsPerGroup)
+    for (CurName in PerGroupNames) {
+      try(dir.create(file.path(path_stats, "Categorical Distributions Per Group"), showWarnings = FALSE))
+      tryCatch({
+        png(paste0(path_stats, "Categorical Distributions Per Group/", CurName, ".png"), width = CatWidth, height = CatHeight, units = "px")
+        print(DescriptiveStatsVar$BarChartGraphsPerGroup[[CurName]])
+      }, warning = function(w) {
+        cat("Warning:\n")
+        print(w)
+      }, error = function(e) {
+        cat("Error:\n")
+        print(e)
+      }, finally = {
+        try(dev.off(), silent = TRUE)
+      })
+    }
+  }
+
+  if (NROW(DescriptiveStatsVar$NumericVSDependentGraphs) > 0) {
+    ### Numerical Variables VS the Dependent one
+    tryCatch({
+      png(paste0(path_stats, "Numerical VS Dependent.png"), width = NumWidth, height = NumHeight, units = "px")
+      suppressWarnings(
+        grid.arrange(grobs = lapply(names(DescriptiveStatsVar$NumericVSDependentGraphs), function(x) {
+          ggplotGrob(DescriptiveStatsVar$NumericVSDependentGraphs[[x]])
+        }),
+        nrow = round(sqrt(NROW(names(DescriptiveStatsVar$NumericVSDependentGraphs)))))
+      )
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+  if (NROW(DescriptiveStatsVar$NumericVSDependentGraphsPerGroup) > 0) {
+    PerGroupNames <- names(DescriptiveStatsVar$NumericVSDependentGraphsPerGroup)
+    for (CurName in PerGroupNames) {
+      try(dir.create(file.path(path_stats, "Numerical VS Dependent Per Group"), showWarnings = FALSE))
+      tryCatch({
+        png(paste0(path_stats, "Numerical VS Dependent Per Group/", CurName, ".png"), width = NumWidth, height = NumHeight, units = "px")
+        suppressWarnings(
+          grid.arrange(grobs = lapply(names(DescriptiveStatsVar$NumericVSDependentGraphsPerGroup[[CurName]]), function(x) {
+            ggplotGrob(DescriptiveStatsVar$NumericVSDependentGraphsPerGroup[[CurName]][[x]])
+          }),
+          nrow = round(sqrt(NROW(names(DescriptiveStatsVar$NumericVSDependentGraphsPerGroup[[CurName]])))))
+        )
+      }, warning = function(w) {
+        cat("Warning:\n")
+        print(w)
+      }, error = function(e) {
+        cat("Error:\n")
+        print(e)
+      }, finally = {
+        try(dev.off(), silent = TRUE)
+      })
+    }
+  }
+
+  if (NROW(DescriptiveStatsVar$CategoricalVSDependentGraphs) > 0) {
+    ### Categorical Variables VS the Dependent one
+    tryCatch({
+      png(paste0(path_stats, "Categorical VS Dependent.png"), width = CatWidth, height = CatHeight, units = "px")
+      suppressWarnings(
+        grid.arrange(grobs = lapply(names(DescriptiveStatsVar$CategoricalVSDependentGraphs), function(x) {
+          ggplotGrob(DescriptiveStatsVar$CategoricalVSDependentGraphs[[x]])
+        }),
+        nrow = round(sqrt(NROW(names(DescriptiveStatsVar$CategoricalVSDependentGraphs)))))
+      )
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+  if (NROW(DescriptiveStatsVar$CategoricalVSDependentGraphsPerGroup) > 0) {
+    PerGroupNames <- names(DescriptiveStatsVar$CategoricalVSDependentGraphsPerGroup)
+    for (CurName in PerGroupNames) {
+      try(dir.create(file.path(path_stats, "Categorical VS Dependent Per Group"), showWarnings = FALSE))
+      tryCatch({
+        png(paste0(path_stats, "Categorical VS Dependent Per Group/", CurName, ".png"), width = CatWidth, height = CatHeight, units = "px")
+        suppressWarnings(
+          grid.arrange(grobs = lapply(names(DescriptiveStatsVar$CategoricalVSDependentGraphsPerGroup[[CurName]]), function(x) {
+            ggplotGrob(DescriptiveStatsVar$CategoricalVSDependentGraphsPerGroup[[CurName]][[x]])
+          }),
+          nrow = round(sqrt(NROW(names(DescriptiveStatsVar$CategoricalVSDependentGraphsPerGroup[[CurName]])))))
+        )
+      }, warning = function(w) {
+        cat("Warning:\n")
+        print(w)
+      }, error = function(e) {
+        cat("Error:\n")
+        print(e)
+      }, finally = {
+        try(dev.off(), silent = TRUE)
+      })
+    }
+  }
+
+  ### Time Series Progression Plots
+  if (NROW(DescriptiveStatsVar$TimeProgressionPlots) > 0) {
+    tryCatch({
+      png(paste0(path_stats, "Time Progression for Numerical Variables.png"), width = TimeSeriesWidth, height = TimeSeriesHeight, units = "px")
+      suppressWarnings(
+        grid.arrange(grobs = lapply(names(DescriptiveStatsVar$TimeProgressionPlots), function(x) {
+          ggplotGrob(DescriptiveStatsVar$TimeProgressionPlots[[x]])
+        }),
+        nrow = round(sqrt(NROW(names(DescriptiveStatsVar$TimeProgressionPlots)))))
+      )
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+
+  return(paste0("Descriptive Statistics Results and Plots have been saved on: ", path_stats))
+} #/SaveDescrStats

@@ -112,6 +112,7 @@ And lastly, there's a Per-Group folder where everything talked so far is done ag
 }
 \examples{
 #Loading the famous mtcars dataset
+library(dplyr)
 DS <- mtcars \%>\% mutate(vs = as.factor(vs), am = as.factor(am), gear = as.factor(gear), carb = as.factor(carb)) \%>\% as_tibble()
 
 #Seeing and understanding the Dataset

@@ -1,3 +1,4 @@
+#'
 #' Automatically Calculate a wide variety of Statistics for any Dataset (tibble). When called make sure to assign this function's output to a variable, i.e.: MyDFStats <- DescriptiveStats(MyDF, TRUE)
 #'
 #' DESCRIPTIVES:
@@ -32,6 +33,7 @@
 #' -Numerical VS Dependent PEr Group displayed as 1 plot per Group's level,  with each plot being juxtaposed Boxplots 1 bar per level of the Dependent variable
 #' And lastly, there's a Per-Group folder where everything talked so far is done again in a recursive manner for rows corresponding to each group's level, and removing the Group variable
 #' @param VarDF A Tibble (data.frame) This is the Dataset to be analysed. Ensure that Categorical variables are set as factor(), texts as character(), Integers as integer(), Booleans as logical()
+#' @keywords Descriptive Statistics DescriptiveStats DescrStats
 #' @param CalculateGraphs Boolean. If FALSE then only Descriptives and Pearson Correlations are calculated
 #' @param IncludeInteger Boolean. If FALSE then no statistics will occur for Integer variables
 #' @param RoundAt Integer. Descriptive Statistics values like Min, Max, etc. will be rounded to this decimal place
@@ -54,10 +56,10 @@
 #' @param CalcPValues Boolean. Whether or not to calculate (and show on plots) the p-values for Pearson and Spearman correlations
 #' @param SignificanceLevel Numeric. The Significance Level to be used for the p-values for Pearson and Spearman correlations
 #' @param Verbose Numeric. If there are many columns, calculations can take a long time so we might wanna know when each part finishes and perhaps disable some parts
-#' @keywords Descriptive Statistics DescriptiveStats DescrStats
 #' @export
 #' @examples
 #' #Loading the famous mtcars dataset
+#' library(dplyr)
 #' DS <- mtcars %>% mutate(vs = as.factor(vs), am = as.factor(am), gear = as.factor(gear), carb = as.factor(carb)) %>% as_tibble()
 #'
 #' #Seeing and understanding the Dataset

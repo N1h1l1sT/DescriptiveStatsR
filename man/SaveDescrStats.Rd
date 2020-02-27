@@ -16,7 +16,21 @@ SaveDescrStats(
 )
 }
 \arguments{
-\item{DefaultToExclude}{A Boolean. If TRUE, every non-ID and non-FK column will default to Include == FALSE, unless ExcludeIdentities or ExcludeForeignKeys is set to TRUE}
+\item{DescriptiveStatsVar}{A list. The output of DescriptiveStats() on a dataset}
+
+\item{path_stats}{A string. The relative or full path of a folder (existing or to be created) where all the matrices and plots will be saved on}
+
+\item{NumWidth}{An Integer. Width (in pixels) for Numerical Variables' plots}
+
+\item{NumHeight}{An Integer. Height (in pixels) for Numerical Variables' plots}
+
+\item{CatWidth}{An Integer. Width (in pixels) for Categorical Variables' plots}
+
+\item{CatHeight}{An Integer. Height (in pixels) for Categorical Variables' plots}
+
+\item{TimeSeriesWidth}{An Integer. Width (in pixels) for the Timeseries plot}
+
+\item{TimeSeriesHeight}{An Integer. Height (in pixels) for the Timeseries plot}
 }
 \description{
 Gets the output of DescriptiveStats() and no matter what options were selected, saves in a specified folder all the valid Statistics

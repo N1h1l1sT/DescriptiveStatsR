@@ -644,7 +644,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
               StatInferNumGraphsPerGroup[[NumVarName]] <-
                 lapply(GroupByGroups, function(CurGroup) {
                   ggplot(data = NumericDS %>% filter(CurGroupFilterIndx[[CurGroup]]), aes(x = !!sym(NumVarName), y = !!sym(DependentVar))) +
-                    ylim(min(NumericDS[[NumVarName]], na.rm = TRUE), max(NumericDS[[NumVarName]], na.rm = TRUE)) +
+                    ylim(min(NumericDS[[DependentVar]], na.rm = TRUE), max(NumericDS[[DependentVar]], na.rm = TRUE)) +
                     {if (is.not.null(BoxplotPointsColourVar)) geom_point(aes(colour = BoxplotPointsColourVar[CurGroupFilterIndx[[CurGroup]]])) else geom_point(colour = "#0c4c8a", na.rm = TRUE)} +
                     {if (is.not.null(BoxplotPointsColourVar)) labs(colour = ColourVarName) else NULL} +
                     scale_colour_gradient(low = "#FF0000", high = "#0000FF", limits = c(min(BoxplotPointsColourVar), max(BoxplotPointsColourVar))) +

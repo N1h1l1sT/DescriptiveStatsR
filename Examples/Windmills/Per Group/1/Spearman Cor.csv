@@ -1,0 +1,6 @@
+"KWh","WindSpeed","RotorSpeed","ReactivePower","Orientation"
+1,0.97,1,0.9,-0.11
+NA,1,0.96,0.89,-0.11
+NA,NA,1,0.9,-0.11
+NA,NA,NA,1,-0.09
+NA,NA,NA,NA,1

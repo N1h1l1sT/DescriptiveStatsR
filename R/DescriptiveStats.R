@@ -32,12 +32,12 @@
 #' -Categorical VS Dependent Per Group displayed as 1 plot per Group's level, with each plot being a Stacked Barchart with 1 bar per level of the Dependent variable and 1 colour per level of the Independent one
 #' -Numerical VS Dependent PEr Group displayed as 1 plot per Group's level,  with each plot being juxtaposed Boxplots 1 bar per level of the Dependent variable
 #' And lastly, there's a Per-Group folder where everything talked so far is done again in a recursive manner for rows corresponding to each group's level, and removing the Group variable
+#'
 #' @param VarDF A Tibble (data.frame) This is the Dataset to be analysed. Ensure that Categorical variables are set as factor(), texts as character(), Integers as integer(), Booleans as logical()
-#' @keywords Descriptive Statistics DescriptiveStats DescrStats
 #' @param CalculateGraphs Boolean. If FALSE then only Descriptives and Pearson Correlations are calculated
 #' @param IncludeInteger Boolean. If FALSE then no statistics will occur for Integer variables
 #' @param RoundAt Integer. Descriptive Statistics values like Min, Max, etc. will be rounded to this decimal place
-#' @param AbbrevStrLevelsAfterNcount Integer. String and Factor unique values (levels) will be displayed up to this number, i.e. 'Colours: Red (3%), Cyan (0.8%), ..., Black (8%)' for a value of 3
+#' @param AbbrevStrLevelsAfterNcount Integer. String and Factor unique values (levels) will be displayed up to this number, i.e. 'Colours: Red (3\%), Cyan (0.8\%), ..., Black (8\%)' for a value of 3
 #' @param AllHistsOn1Page Boolean. If ShowGraphs==TRUE, then if TRUE, instead of creating a new plot per histogram, just 1 plot will be created, encompassing all histograms juxtaposed inside
 #' @param AllBoxplotsOn1Page Boolean. Instead of creating 1 plot per variable, all of them are inside 1 plot. However, when there are differences in the value range, the low-range plots are practically invisible
 #' @param AllBarChartsOn1Page Boolean. If ShowGraphs==TRUE, then if TRUE, instead of creating a new plot per Boxplot, just 1 plot will be created, encompassing all histograms juxtaposed inside
@@ -56,6 +56,7 @@
 #' @param CalcPValues Boolean. Whether or not to calculate (and show on plots) the p-values for Pearson and Spearman correlations
 #' @param SignificanceLevel Numeric. The Significance Level to be used for the p-values for Pearson and Spearman correlations
 #' @param Verbose Numeric. If there are many columns, calculations can take a long time so we might wanna know when each part finishes and perhaps disable some parts
+#' @keywords Descriptive Statistics DescriptiveStats DescrStats
 #' @export
 #' @examples
 #' #Loading the famous mtcars dataset

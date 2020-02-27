@@ -39,7 +39,7 @@ DescriptiveStats(
 
 \item{RoundAt}{Integer. Descriptive Statistics values like Min, Max, etc. will be rounded to this decimal place}
 
-\item{AbbrevStrLevelsAfterNcount}{Integer. String and Factor unique values (levels) will be displayed up to this number, i.e. 'Colours: Red (3%), Cyan (0.8%), ..., Black (8%)' for a value of 3}
+\item{AbbrevStrLevelsAfterNcount}{Integer. String and Factor unique values (levels) will be displayed up to this number, i.e. 'Colours: Red (3\%), Cyan (0.8\%), ..., Black (8\%)' for a value of 3}
 
 \item{AllHistsOn1Page}{Boolean. If ShowGraphs==TRUE, then if TRUE, instead of creating a new plot per histogram, just 1 plot will be created, encompassing all histograms juxtaposed inside}
 

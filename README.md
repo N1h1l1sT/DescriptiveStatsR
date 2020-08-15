@@ -67,7 +67,7 @@ ExampleStats %>%
 
 ###### _This covers all the .csv files, moving on to the pictures now and then to the folders_
 
-* The "Perason Cor.png" and "Spearman Cor.png" show Person and Spearman correlations respectively with statistical significance indicators, whilst "Perason Cor Ordered.png" and "Spearman Cor Ordered.png" do the same thing but variables are ordered to form clusters. Take Spearman correlations ordered, for instance:
+* The "Pearson Cor.png" and "Spearman Cor.png" show Pearson and Spearman correlations respectively with statistical significance indicators, whilst "Pearson Cor Ordered.png" and "Spearman Cor Ordered.png" do the same thing but variables are ordered to form clusters. Take Spearman correlations ordered, for instance:
 
 ![Spearman Cor Ordered.png](https://github.com/N1h1l1sT/DescriptiveStatsR/blob/master/Examples/Windmills/Spearman%20Cor%20Ordered.png?raw=true "Spearman correlations ordered")
 
@@ -106,7 +106,7 @@ We can also see that the orientation, while it seemingly can take any value, mos
 
 Notice, for example, the long right tail on WindSpeed's distribution. Windspeed is mainly less than 20, but it seems to be taking every value between 20 and 32, albeit very rarely.
 
-Also notice how much easier is to see that much of the time the Windmill produces near-zero values or very high values. Combining this with what we saw on boxplots, pretty much 25% it produces nothing, 25% it produces lots of power and 50% of the time it produces normal amounts of power.
+Also notice how much easier it is to see that much of the time the Windmill produces near-zero values or very high values. Combining this with what we saw on boxplots, pretty much 25% of the time it produces nothing, 25% it produces lots of power and 50% of the time it produces normal amounts of power.
 
 * The "Numerical VS Dependent.png" shows how the Dependent variable behaves as each numeric variable gets higher values
 

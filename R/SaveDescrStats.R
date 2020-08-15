@@ -53,7 +53,7 @@ SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, Num
 
   if (is.not.null(DescriptiveStatsVar$PearsonCorPlot)) {
     tryCatch({
-      png(paste0(path_stats, "Perason Cor.png"), width = (NumHeight * 0.56), height = (NumHeight * 0.56), units = "px")
+      png(paste0(path_stats, "Pearson Cor.png"), width = (NumHeight * 0.56), height = (NumHeight * 0.56), units = "px")
       print(DescriptiveStatsVar$PearsonCorPlot)
     }, warning = function(w) {
     }, error = function(e) {
@@ -64,7 +64,7 @@ SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, Num
 
   if (is.not.null(DescriptiveStatsVar$PearsonCorOrderedPlot)) {
     tryCatch({
-      png(paste0(path_stats, "Perason Cor Ordered.png"), width = (NumHeight * 0.56), height = (NumHeight * 0.56), units = "px")
+      png(paste0(path_stats, "Pearson Cor Ordered.png"), width = (NumHeight * 0.56), height = (NumHeight * 0.56), units = "px")
       print(DescriptiveStatsVar$PearsonCorOrderedPlot)
     }, warning = function(w) {
     }, error = function(e) {

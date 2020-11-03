@@ -1,7 +1,7 @@
 Package: DescriptiveStatsR
 Type: Package
 Title: Descriptive Statistics, Statistical Inference and Plots, easily and for any DataFrame
-Version: 1.0.0
+Version: 1.0.1
 Authors@R: c(
 	person("Ioannis", "Mamalikidis", email = "Giannis_Mamalikidis@msn.com", role = c("aut", "cre"))
 	)
@@ -39,4 +39,4 @@ Depends:
 	purrr (>= 0.3.3),
 	reshape2 (>= 1.4.3),
 	ggplot2 (>= 3.2.1)
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.0

@@ -26,7 +26,7 @@ DescriptiveStats(
   SeedForSampling = NULL,
   CalcPValues = TRUE,
   SignificanceLevel = 0.01,
-  CorrVarOrder = NULL,
+  CorrVarOrder = "PCA",
   Verbose = NULL
 )
 }

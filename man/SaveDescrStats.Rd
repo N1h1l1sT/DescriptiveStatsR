@@ -9,8 +9,8 @@ SaveDescrStats(
   path_stats,
   NumWidth = 1300,
   NumHeight = 800,
-  CatWidth = 400,
-  CatHeight = 400,
+  CatWidth = 1300,
+  CatHeight = 800,
   TimeSeriesWidth = NULL,
   TimeSeriesHeight = NULL
 )

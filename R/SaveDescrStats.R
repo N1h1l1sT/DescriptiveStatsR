@@ -21,7 +21,7 @@
 #'
 #' #Saving everything to a folder on our Hard Drive
 #' MTCarsStats %>% SaveDescrStats("MTCarsFolder")
-SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, NumHeight = 800, CatWidth = 400, CatHeight = 400, TimeSeriesWidth = NULL, TimeSeriesHeight = NULL) {
+SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, NumHeight = 800, CatWidth = 1300, CatHeight = 800, TimeSeriesWidth = NULL, TimeSeriesHeight = NULL) {
   try(dir.create(file.path(GetParentDir(GetParentDir(path_stats)), GetFileNamesAlone(GetParentDir(path_stats))), showWarnings = FALSE))
   try(dir.create(file.path(GetParentDir(path_stats), GetFileNamesAlone(path_stats)), showWarnings = FALSE))
 

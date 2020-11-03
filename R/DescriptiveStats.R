@@ -72,7 +72,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
                              AllHistsOn1Page = TRUE, AllBoxplotsOn1Page = FALSE, AllBarChartsOn1Page = TRUE, DependentVar = NULL, ShowGraphs = FALSE, BoxplotPointsColourVar = NULL,
                              NoPrints = FALSE, IsTimeSeries = FALSE, GroupBy = NULL, TimeFlowVar = NULL,
                              BoxPlotPointSize = 0.4, BoxPlotPointAlpha = 0.1, SampleIfNRowGT = 10000, SeedForSampling = NULL,
-                             CalcPValues = TRUE, SignificanceLevel = 0.01, CorrVarOrder = NULL, Verbose = NULL) {
+                             CalcPValues = TRUE, SignificanceLevel = 0.01, CorrVarOrder = "PCA", Verbose = NULL) {
   #VarDF <- tibble(a = runif(100), b = rnorm(100), c = rhyper(100, 50, 40, 20), d = if_else(runif(100) < 0.5, "Less", "More"), e = if_else(rnorm(100) < 0.5, "Low", "High"), f = 5)
 
 
@@ -285,8 +285,8 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
   ############################
   CorDS <-
     NumericDS %>%
-    bind_cols(VarDF %>% select_if(is.logical) %>% filter(FilteredIndx)) %>%
-    mutate_if(is.logical, as.integer) %>%
+    bind_cols(VarDF %>% select_if(function(x) is.logical(x) | NROW(levels(x)) == 2) %>% filter(FilteredIndx)) %>%
+    mutate_if(function(x) is.logical(x) | is.factor(x), as.integer) %>%
     rename_all(Left, 20) %>%
     setNames(make.names(names(.), unique = TRUE))
 

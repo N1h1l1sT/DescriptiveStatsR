@@ -733,7 +733,8 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
 
           if (is.not.null(BoxplotPointsColourVar)) {
             for (i in 1:NROW(StatInferNumGraphs)) {
-              StatInferNumGraphs[[i]] <- StatInferNumGraphs[[i]] + geom_jitter(aes(colour = BoxplotPointsColourVar), shape = 16, position = position_jitter(0.2), size = BoxPlotPointSize, alpha = BoxPlotPointAlpha) + scale_colour_gradient(low = "#FF0000", high = "#0000FF")
+              StatInferNumGraphs[[i]] <- StatInferNumGraphs[[i]] + geom_jitter(aes(colour = BoxplotPointsColourVar), shape = 16, position = position_jitter(0.2), size = BoxPlotPointSize, alpha = BoxPlotPointAlpha) + scale_colour_gradient(low = "#FF0000", high = "#0000FF") +
+                labs(colour = ColourVarName) ##########
             }
           } else {
             for (i in 1:NROW(StatInferNumGraphs)) {
@@ -766,7 +767,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
                      else {
                        geom_jitter(shape = 16, position = position_jitter(0.2), colour = "red", size = BoxPlotPointSize, alpha = BoxPlotPointAlpha)
                     }} +
-                    {if (is.not.null(BoxplotPointsColourVar)) scale_colour_gradient(low = "#FF0000", high = "#0000FF", limits = c(min(BoxplotPointsColourVar), max(BoxplotPointsColourVar))) else NULL}
+                    {if (is.not.null(BoxplotPointsColourVar)) scale_colour_gradient(low = "#FF0000", high = "#0000FF", limits = c(min(BoxplotPointsColourVar), max(BoxplotPointsColourVar))) else NULL} +
                     {if (is.not.null(BoxplotPointsColourVar)) labs(colour = ColourVarName) else NULL}
                 })
               names(StatInferNumGraphsPerGroup[[NumVarName]]) <- GroupByGroups

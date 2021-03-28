@@ -78,7 +78,10 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
 
   #TODO Expand this so it can also understand dates, bits/logical, and perhaps other kinds as well
 
-  if (is.not.null(GroupBy) & !all(GroupBy %in% (VarDF %>% select_if(function(x) is.factor(x) | is.logical(x)) %>% names()))) GroupBy <- NULL
+  if (is.not.null(GroupBy) & !all(GroupBy %in% (VarDF %>% select_if(function(x) is.factor(x) | is.logical(x)) %>% names()))) {
+    warning(paste0("GroupBy Variable [", GroupBy, "] is not a factor or logical/boolean variable on the dataset"))
+    GroupBy <- NULL
+  }
   if (is.null(Verbose)) Verbose <- NCOL(VarDF) > 20 #If there are many columns, calculations can take a long time so we might wanna know when each part finishes and perhaps disable some parts
   if (is.null(CalcPValues)) CalcPValues <- NCOL(VarDF) <= 20
   if (is.not.null(TimeFlowVar) & (NROW(TimeFlowVar) == 1 && typeof(TimeFlowVar) == "character" && class(TimeFlowVar) == "character")) TimeFlowVar <- VarDF[[TimeFlowVar]] #If it's not a string, then we've been given the variable itself, so nothing else to do.
@@ -517,11 +520,13 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
             aes(x = 0, y = !!sym(NumVarName)) +
             geom_boxplot(fill = "#0c4c8a", na.rm = TRUE) +
             xlab("") +
+            ylab("") +
             {if (is.not.null(BoxplotPointsColourVar)) { ##Points (jitter) cannot be applied by fill-group when 'fill' is set on geom_boxplot
               geom_jitter(aes(colour = BoxplotPointsColourVar), shape = 16, position = position_jitter(0.2), size = BoxPlotPointSize, alpha = BoxPlotPointAlpha)
             } else {
               geom_jitter(shape = 16, position = position_jitter(0.2), colour = "red", size = BoxPlotPointSize, alpha = BoxPlotPointAlpha)
             }} +
+            ggtitle(NumVarName) +
             {if (is.not.null(BoxplotPointsColourVar)) scale_colour_gradient(low = "#FF0000", high = "#0000FF") else NULL} +
             {if (is.not.null(BoxplotPointsColourVar)) labs(colour = ColourVarName) else NULL}
         })
@@ -565,7 +570,9 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
         lapply(NonNumericDSColNames, function(CatVarName) {
           ggplot(data = NonNumericDS) +
             aes(x = !!sym(CatVarName)) +
-            geom_bar(aes(fill = !!sym(CatVarName)))
+            geom_bar(aes(fill = !!sym(CatVarName))) +
+            geom_text(stat = 'count', aes(label = ..count..), vjust = -.25) #+ #Always shows 100%
+            # geom_text(stat = "count", aes(label = scales::percent(..prop..), y = ..prop..), vjust = +.75)
         })
       names(BarChartGraphs) <- NonNumericDSColNames
 

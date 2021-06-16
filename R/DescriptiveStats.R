@@ -52,9 +52,21 @@
 #' @param BoxPlotPointSize Numeric. How big or small you want the dots on the Boxplots to be. Usually a value between 0.1 and 1. The more the rows, the less the value here
 #' @param BoxPlotPointAlpha Numeric. How transparent you want the dots on the Boxplots to be. Usually a value between 0.1 and 1. The more the rows, the less the value here
 #' @param SampleIfNRowGT Integer. How many rows to keep for the plots. The more the rows, the greater the time it takes to plot everything. ggplot is not optimised for big data, so subsample for plots
-#' @param SeedForSampling Integer. Doesn't really matter as subsampling is only for plots, but you can set a seed for the subsampling procedure.
+#' @param SeedForSampling Integer. Doesn't really matter as subsampling is only for plots, but you can set a seed for the subsampling procedure
 #' @param CalcPValues Boolean. Whether or not to calculate (and show on plots) the p-values for Pearson and Spearman correlations
 #' @param SignificanceLevel Numeric. The Significance Level to be used for the p-values for Pearson and Spearman correlations
+#' @param DatesToNowMinusDate Boolean. If TRUE then Dates are transformed into integers reflecting how many seconds have passed since the time on the date
+#' @param DatesToCyclicMonth Boolean. If TRUE then Dates are transformed into numeric variables containing the cyclic sin and cos of the Month
+#' @param DatesToCyclicDayOfWeek Boolean. If TRUE then Dates are transformed into numeric variables containing the cyclic sin and cos of the Day-of-week
+#' @param DatesToCyclicDayOfMonth Boolean. If TRUE then Dates are transformed into numeric variables containing the cyclic sin and cos of the Day-of-month
+#' @param DatesToCyclicDayOfYear Boolean. If TRUE then Dates are transformed into numeric variables containing the cyclic sin and cos of the Day-of-year
+#' @param DatesToYearCat Boolean. If TRUE then Dates are transformed into categorical variables containing the Year of the date
+#' @param DatesToMonthCat Boolean. If TRUE then Dates are transformed into categorical variables containing the Month of the date
+#' @param DatesToDayOfWeekCat Boolean. If TRUE then Dates are transformed into categorical variables containing the Day-of-week of the date
+#' @param DatesToDayOfMonthCat Boolean. If TRUE then Dates are transformed into categorical variables containing the Day-of-month of the date
+#' @param DatesToDayOfYearCat Boolean. If TRUE then Dates are transformed into categorical variables containing the Day-of-Year of the date
+#' @param DatesToHourCat Boolean. If TRUE then Dates are transformed into categorical variables containing the Hour of the date
+#' @param DatesToMinuteCat Boolean. If TRUE then Dates are transformed into categorical variables containing the Minute of the date
 #' @param Verbose Numeric. If there are many columns, calculations can take a long time so we might wanna know when each part finishes and perhaps disable some parts
 #' @keywords Descriptive Statistics DescriptiveStats DescrStats
 #' @export
@@ -72,35 +84,57 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
                              AllHistsOn1Page = TRUE, AllBoxplotsOn1Page = FALSE, AllBarChartsOn1Page = TRUE, DependentVar = NULL, ShowGraphs = FALSE, BoxplotPointsColourVar = NULL,
                              NoPrints = FALSE, IsTimeSeries = FALSE, GroupBy = NULL, TimeFlowVar = NULL,
                              BoxPlotPointSize = 0.4, BoxPlotPointAlpha = 0.1, SampleIfNRowGT = 10000, SeedForSampling = NULL,
-                             CalcPValues = TRUE, SignificanceLevel = 0.01, CorrVarOrder = "PCA", Verbose = NULL) {
+                             CalcPValues = TRUE, SignificanceLevel = 0.01, CorrVarOrder = "PCA", DatesToNowMinusDate = FALSE,
+                             DatesToCyclicMonth = FALSE, DatesToCyclicDayOfWeek = FALSE, DatesToCyclicDayOfMonth = FALSE, DatesToCyclicDayOfYear = FALSE,
+                             DatesToYearCat = FALSE, DatesToMonthCat = FALSE, DatesToDayCat = FALSE, DatesToDayOfWeekCat = FALSE, DatesToDayOfMonthCat = FALSE,
+                             DatesToDayOfYearCat = FALSE, DatesToHourCat = FALSE, DatesToMinuteCat = FALSE,
+                             Verbose = NULL) {
   #VarDF <- tibble(a = runif(100), b = rnorm(100), c = rhyper(100, 50, 40, 20), d = if_else(runif(100) < 0.5, "Less", "More"), e = if_else(rnorm(100) < 0.5, "Low", "High"), f = 5)
 
-
+  #TODO When saving folders like "Boxplot Graphs Per Group" it should say "Per {VarName}"
+  #TODO Another set of Correlations should be produced that include One-Hot-Encoded Factor Variables
+  #TODO For time-series: Correlation with lag-variables (lag variables can be a vector for more than 1) both as matrices and as scatterplots
+  #TODO Variance/Covariance matrix for numeric (ordinal, logical) variables
+  #TODO Categorical Descriptives: Mode
+  #TODO Choose Upper or Lower Triangle for Correlations
   #TODO Expand this so it can also understand dates, bits/logical, and perhaps other kinds as well
 
-  if (is.not.null(GroupBy) & !all(GroupBy %in% (VarDF %>% select_if(function(x) is.factor(x) | is.logical(x)) %>% names()))) {
+  #Making sure the names of the Dataframe as valid (no duplicates and only valid characters inside)
+  if (is.not.null(DependentVar)) DependentVarIdx <- (names(VarDF) == DependentVar) %>% {ifelse(sum(.) > 0, which.max(.), numeric(0))} else DependentVarIdx <- NULL
+  if (is.not.null(BoxplotPointsColourVar) && (NROW(BoxplotPointsColourVar) == 1 && NCOL(BoxplotPointsColourVar) == 1 && typeof(BoxplotPointsColourVar) == "character")) BoxplotPointsColourVarIdx <- (names(VarDF) == BoxplotPointsColourVar) %>% {ifelse(sum(.) > 0, which.max(.), numeric(0))} else BoxplotPointsColourVarIdx <- NULL
+  if (is.not.null(GroupBy)) GroupByIdx <- (names(VarDF) == GroupBy) %>% {ifelse(sum(.) > 0, which.max(.), numeric(0))} else GroupByIdx <- NULL
+  if (is.not.null(TimeFlowVar) && (NROW(TimeFlowVar) == 1 && NCOL(TimeFlowVar) == 1 && typeof(TimeFlowVar) == "character" && class(TimeFlowVar) == "character")) TimeFlowVarIdx <- (names(VarDF) == TimeFlowVar) %>% {ifelse(sum(.) > 0, which.max(.), numeric(0))} else TimeFlowVarIdx <- NULL
+  names(VarDF) <- make.names(names(VarDF), unique = TRUE)
+  if (is.not.null(DependentVar) && is.not.na(DependentVarIdx)) DependentVar <- names(VarDF)[DependentVarIdx]
+  if (is.not.null(BoxplotPointsColourVar) && is.not.na(BoxplotPointsColourVarIdx) && (NROW(BoxplotPointsColourVar) == 1 && NCOL(BoxplotPointsColourVar) == 1 && typeof(BoxplotPointsColourVar) == "character")) BoxplotPointsColourVar <- names(VarDF)[BoxplotPointsColourVarIdx]
+  if (is.not.null(GroupBy) && is.not.na(GroupByIdx)) GroupBy <- names(VarDF)[GroupByIdx]
+  if (is.not.null(TimeFlowVar) && is.not.na(TimeFlowVarIdx) && (NROW(TimeFlowVar) == 1 && NCOL(TimeFlowVar) == 1 && typeof(TimeFlowVar) == "character" && class(TimeFlowVar) == "character")) TimeFlowVar <- names(VarDF)[TimeFlowVarIdx]
+
+  if (is.not.null(GroupBy) && !all(GroupBy %in% (VarDF %>% select_if(function(x) is.factor(x) | is.logical(x)) %>% names()))) {
     warning(paste0("GroupBy Variable [", GroupBy, "] is not a factor or logical/boolean variable on the dataset"))
     GroupBy <- NULL
   }
   if (is.null(Verbose)) Verbose <- NCOL(VarDF) > 20 #If there are many columns, calculations can take a long time so we might wanna know when each part finishes and perhaps disable some parts
   if (is.null(CalcPValues)) CalcPValues <- NCOL(VarDF) <= 20
-  if (is.not.null(TimeFlowVar) & (NROW(TimeFlowVar) == 1 && typeof(TimeFlowVar) == "character" && class(TimeFlowVar) == "character")) TimeFlowVar <- VarDF[[TimeFlowVar]] #If it's not a string, then we've been given the variable itself, so nothing else to do.
+  if (is.not.null(TimeFlowVar) && (NROW(TimeFlowVar) == 1 && NCOL(TimeFlowVar) == 1 && typeof(TimeFlowVar) == "character" && class(TimeFlowVar) == "character")) TimeFlowVar <- VarDF[[TimeFlowVar]] #If it's not a string, then we've been given the variable itself, so nothing else to do.
 
   if (is.not.null(BoxplotPointsColourVar)) {
     if (NROW(BoxplotPointsColourVar) == 1 && NCOL(BoxplotPointsColourVar) == 1 && typeof(BoxplotPointsColourVar) == "character") {
       ColourVarName <- BoxplotPointsColourVar
-      BoxplotPointsColourVar <- VarDF[[BoxplotPointsColourVar]]
+      BoxplotPointsColourVar <- VarDF[[ColourVarName]]
     } else if (NCOL(BoxplotPointsColourVar) == 1 && NROW(names(BoxplotPointsColourVar)) > 0) {
       ColourVarName <- names(BoxplotPointsColourVar)[[1]]
-      BoxplotPointsColourVar <- as.vector(BoxplotPointsColourVar)
+      ColourVarClass <- class(BoxplotPointsColourVar)
+      BoxplotPointsColourVar <- as.vector(BoxplotPointsColourVar) %>% set_class(ColourVarClass)
     } else {
+      cat("BoxplotPointsColourVar wasn't the name of the column on the data and it wasn't a named vector either so name is irretrievable!\n")
       ColourVarName <- ""
     }
   }
 
   PerGroupDescrStats <- NULL
   if (is.not.null(GroupBy)) {
-    GroupByGroups <- VarDF %>% pull(!!GroupBy) %>% as.factor() %>% unique() %>% {as.character(.)[as.character(.) %in% levels(.)]}
+    GroupByGroups <- VarDF %>% pull(!!GroupBy) %>% as.factor() %>% unique() %>% {as.character(.)[as.character(.) %in% levels(.)]} #TODO! Changes the order of ordered factors (is.ordered = TRUE)
 
     CurGroupFilterIndx <- NULL
     for (CurGroup in GroupByGroups) {
@@ -109,12 +143,20 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
 
     PerGroupDescrStats <-
       lapply(GroupByGroups, function(CurGroup) {
+        print(paste0("CurGroup: ", CurGroup))
         CurPerGroupDescrStats <-
-          DescriptiveStats(VarDF = VarDF %>% filter(CurGroupFilterIndx[[CurGroup]]) %>% select(-c(!!sym(GroupBy))), CalculateGraphs = CalculateGraphs, IncludeInteger = IncludeInteger, RoundAt = RoundAt, AbbrevStrLevelsAfterNcount = AbbrevStrLevelsAfterNcount,
-                             AllHistsOn1Page = AllHistsOn1Page, AllBoxplotsOn1Page = AllBoxplotsOn1Page, AllBarChartsOn1Page = AllBarChartsOn1Page, DependentVar = DependentVar, ShowGraphs = ShowGraphs, BoxplotPointsColourVar = if(is.not.null(BoxplotPointsColourVar)) BoxplotPointsColourVar[CurGroupFilterIndx[[CurGroup]]] %>% setNames(ColourVarName) else NULL,
-                             NoPrints = TRUE, IsTimeSeries = IsTimeSeries, GroupBy = NULL, TimeFlowVar = TimeFlowVar[CurGroupFilterIndx[[CurGroup]]],
+          DescriptiveStats(VarDF = VarDF %>% filter(CurGroupFilterIndx[[CurGroup]]) %>% select(-c(!!sym(GroupBy))),
+                             CalculateGraphs = CalculateGraphs, IncludeInteger = IncludeInteger, RoundAt = RoundAt, AbbrevStrLevelsAfterNcount = AbbrevStrLevelsAfterNcount,
+                             AllHistsOn1Page = AllHistsOn1Page, AllBoxplotsOn1Page = AllBoxplotsOn1Page, AllBarChartsOn1Page = AllBarChartsOn1Page, DependentVar = DependentVar,
+                           ShowGraphs = FALSE,
+                           BoxplotPointsColourVar = if(is.not.null(BoxplotPointsColourVar)) BoxplotPointsColourVar[CurGroupFilterIndx[[CurGroup]]] %>% setNames(ColourVarName) else NULL,
+                           NoPrints = TRUE,
+                             IsTimeSeries = IsTimeSeries,
+                           GroupBy = NULL,
+                           TimeFlowVar = TimeFlowVar[CurGroupFilterIndx[[CurGroup]]],
                              BoxPlotPointSize = BoxPlotPointSize, BoxPlotPointAlpha = BoxPlotPointAlpha, SampleIfNRowGT = SampleIfNRowGT, SeedForSampling = SeedForSampling,
-                             CalcPValues = CalcPValues, SignificanceLevel = SignificanceLevel, CorrVarOrder = CorrVarOrder, Verbose = FALSE
+                             CalcPValues = CalcPValues, SignificanceLevel = SignificanceLevel, CorrVarOrder = CorrVarOrder,
+                           Verbose = FALSE
           )
 
         return(CurPerGroupDescrStats)
@@ -127,29 +169,85 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
   ######################
   NumericDS <-
     VarDF %>%
-    dplyr::select_if(function(NumVarName) ((IncludeInteger & is.numeric(NumVarName)) | (is.numeric(NumVarName) & !IncludeInteger & !is.integer(NumVarName))))
+    dplyr::select_if(function(Var) ((IncludeInteger & is.numeric(Var)) | (is.numeric(Var) & !IncludeInteger & !is.integer(Var)) | (is.factor(Var) & is.ordered(Var))) | (
+      (is.Date(Var) | is.POSIXct(Var) | is.POSIXlt(Var) | is.POSIXt(Var)) & (DatesToNowMinusDate | DatesToCyclicMonth | DatesToCyclicDayOfWeek | DatesToCyclicDayOfMonth | DatesToCyclicDayOfYear)
+      )) %>%
+    mutate_if(is.factor, as.numeric) %>% #It's already ordered because of select_if()
+    mutate_if(function(x) DatesToCyclicMonth & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+      list(
+        SinMon = function(x) {
+          tmp = lubridate::as_date(x)
+          sin(2 * pi * lubridate::month(tmp) / 12)
+        },
+        CosMon = function(x) {
+          tmp = lubridate::as_date(x)
+          cos(2 * pi * lubridate::month(tmp) / 12)
+        }
+      )
+    ) %>%
+    mutate_if(function(x) DatesToCyclicDayOfWeek & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+      list(
+        SinDOW = function(x) {
+          tmp = lubridate::as_date(x)
+          sin(2 * pi * lubridate::wday(tmp) / 7)
+        },
+        CosDOW = function(x) {
+          tmp = lubridate::as_date(x)
+          cos(2 * pi * lubridate::wday(tmp) / 7)
+        }
+      )
+    ) %>%
+    mutate_if(function(x) DatesToCyclicDayOfMonth & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+      list(
+        SinDOM = function(x) {
+          tmp = lubridate::as_date(x)
+          sin(2 * pi * lubridate::mday(tmp) / as.numeric(lubridate::days_in_month(tmp)))
+        },
+        CosDOM = function(x) {
+          tmp = lubridate::as_date(x)
+          cos(2 * pi * lubridate::mday(tmp) / as.numeric(lubridate::days_in_month(tmp)))
+        }
+      )
+    ) %>%
+    mutate_if(function(x) DatesToCyclicDayOfYear & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+              list(
+                SinDOY = function(x) {
+                  tmp = lubridate::as_date(x)
+                  sin(2 * pi * lubridate::year(tmp) / 365)
+                },
+                CosDOY = function(x) {
+                  tmp = lubridate::as_date(x)
+                  cos(2 * pi * lubridate::year(tmp) / 365)
+                }
+              )
+    ) %>%
+    mutate_if(function(x) DatesToNowMinusDate & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)), function(y) time_length(lubridate::now(tzone = "UTC") - as_datetime(y), unit = "second"))
 
   NumericDSColNames <-
     NumericDS %>%
     names()
 
   NumericDescriptives <-
-    NumericDSColNames %>% sapply(function(NumVarName) c(Min = NumericDS[[NumVarName]] %>% min(na.rm = TRUE) %>% round(RoundAt),
-                                                        Q1 = (NumericDS[[NumVarName]] %>% quantile(probs = 0.25, na.rm = TRUE))[[1]] %>% round(RoundAt),
-                                                        Mean = NumericDS[[NumVarName]] %>% mean(na.rm = TRUE) %>% round(RoundAt),
-                                                        Median = NumericDS[[NumVarName]] %>% median(na.rm = TRUE) %>% round(RoundAt),
-                                                        Q3 = (NumericDS[[NumVarName]] %>% quantile(probs = 0.75, na.rm = TRUE))[[1]] %>% round(RoundAt),
-                                                        Max = NumericDS[[NumVarName]] %>% max(na.rm = TRUE) %>% round(RoundAt),
-                                                        SD = NumericDS[[NumVarName]] %>% sd(na.rm = TRUE) %>% round(RoundAt),
-                                                        IQR = NumericDS[[NumVarName]] %>% IQR(na.rm = TRUE) %>% round(RoundAt),
-                                                        Obs = NumericDS[[NumVarName]] %>% is.not.na() %>% sum(),
-                                                        NAs = NumericDS[[NumVarName]] %>% is.na() %>% sum()
+    NumericDSColNames %>% sapply(function(NumVar) c(Min      =  NumericDS[[NumVar]] %>% min(na.rm = TRUE)                              %>% round(RoundAt),
+                                                    Q1       = (NumericDS[[NumVar]] %>% quantile(probs = 0.25, na.rm = TRUE))[[1]]     %>% round(RoundAt),
+                                                    Mean     =  NumericDS[[NumVar]] %>% mean(na.rm = TRUE)                             %>% round(RoundAt),
+                                                    Median   =  NumericDS[[NumVar]] %>% median(na.rm = TRUE)                           %>% round(RoundAt),
+                                                    Q3       = (NumericDS[[NumVar]] %>% quantile(probs = 0.75, na.rm = TRUE))[[1]]     %>% round(RoundAt),
+                                                    Max      =  NumericDS[[NumVar]] %>% max(na.rm = TRUE)                              %>% round(RoundAt),
+                                                    SD       =  NumericDS[[NumVar]] %>% sd(na.rm = TRUE) %>% {ifelse(is.na(.), 0, .)}  %>% round(RoundAt),
+                                                    IQR      =  NumericDS[[NumVar]] %>% IQR(na.rm = TRUE)                              %>% round(RoundAt),
+                                                    Kurtosis =  NumericDS[[NumVar]] %>% e1071::kurtosis(na.rm = TRUE)                  %>% round(RoundAt),
+                                                    Skewness =  NumericDS[[NumVar]] %>% e1071::skewness(na.rm = TRUE)                  %>% round(RoundAt),
+                                                    Obs      =  NumericDS[[NumVar]] %>% is.not.na() %>% sum(),
+                                                    NAs      =  NumericDS[[NumVar]] %>% is.na() %>% sum(),
+                                                    NAsRatio = (NumericDS[[NumVar]] %>% is.na() %>% sum() / NROW(NumericDS[[NumVar]])) %>% round(RoundAt)
     )
     ) %>%
     data.frame() %>%
     Transpose_DF %>% {
       if (NROW(.) > 0 | NCOL(.) > 0) (.) %>% rename(Name = rowname) else (.) %>% as_tibble()
-    }
+    } %>%
+    mutate(Present = ((1-NAsRatio) * 100) %>% sapply(function(x) paste0(implode(rep(" ", 3 - nchar(round(x,1)))), x, "%")))
 
 
   NumericColsToDrop <- NumericDSColNames[NumericDescriptives$SD == 0]
@@ -161,8 +259,27 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
   #######################
   NonNumericDS <-
     VarDF %>%
-    dplyr::select_if(function(x) !is.numeric(x) & !is.Date(x) & !is.POSIXct(x) & !is.POSIXlt(x) & !is.POSIXt(x)) %>%
-    mutate_if(is.logical, as.factor)
+    dplyr::select_if(function(Var) (!is.numeric(Var) & !is.Date(Var) & !is.POSIXct(Var) & !is.POSIXlt(Var) & !is.POSIXt(Var))) %>%
+    mutate_if(function(x) !is.factor(x), as.factor) %>%
+    add_column(
+      VarDF %>%
+        dplyr::select_if(function(Var) (is.Date(Var) | is.POSIXct(Var) | is.POSIXlt(Var) | is.POSIXt(Var)) & (DatesToYearCat | DatesToMonthCat | DatesToDayOfYearCat | DatesToDayOfWeekCat | DatesToDayOfMonthCat)) %>%
+        mutate_if(function(x) DatesToYearCat & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+                  list(Year = function(x) lubridate::year(x) %>% as.factor() %>% factor(levels = levels(.), labels = sort(levels(.)), ordered = TRUE))
+        ) %>%
+        mutate_if(function(x) DatesToMonthCat & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+                  list(Month = function(x) lubridate::month(x) %>% as.factor() %>% factor(levels = levels(.), labels = sort(levels(.)), ordered = TRUE))
+        ) %>%
+        mutate_if(function(x) DatesToDayOfYearCat & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+                  list(DOY = function(x) lubridate::yday(x) %>% as.factor() %>% factor(levels = levels(.), labels = sort(levels(.)), ordered = TRUE))
+        ) %>%
+        mutate_if(function(x) DatesToDayOfWeekCat & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+                  list(DOW = function(x) lubridate::wday(x) %>% as.factor() %>% factor(levels = levels(.), labels = sort(levels(.)), ordered = TRUE))
+        ) %>%
+        mutate_if(function(x) DatesToDayOfMonthCat & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+                  list(DOM = function(x) lubridate::mday(x) %>% as.factor() %>% factor(levels = levels(.), labels = sort(levels(.)), ordered = TRUE))
+        ) %>% select_if(is.factor)
+    )
 
   NonNumericDSColNames <-
     NonNumericDS %>%
@@ -171,8 +288,9 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
   if(AbbrevStrLevelsAfterNcount < 4) AbbrevStrLevelsAfterNcount <- 4 #3, 2 or 1 items are too few to be shown with the special "..." format
 
   UniqueTexts <- NonNumericDSColNames %>% sapply(function(x) ifelse(is.factor(NonNumericDS[[x]]), NROW(levels(NonNumericDS[[x]])), NonNumericDS[[x]] %>% unique() %>% NROW())) %>% as.numeric()
-  IsFactor <- NonNumericDSColNames %>% sapply(function(x) ifelse(is.factor(NonNumericDS[[x]]), TRUE, FALSE)) %>% as.logical() #Later on, we'd like to remove Text Vars with too many unique values, not all factor vars should remain
+  IsFactor <- NonNumericDSColNames %>% sapply(function(x) is.factor(NonNumericDS[[x]])) %>% as.vector() #Later on, we'd like to remove Text Vars with too many unique values, not all factor vars should remain
 
+  #TODO: Rewrite this so that the resulting Tibble has columns: Name, Obs, NAs, Texts
   if (NROW(NonNumericDSColNames) > 0 && NCOL(NonNumericDSColNames) > 0) {
     CategoricalDescriptives <-
       NonNumericDSColNames %>% sapply(function(x) {
@@ -224,9 +342,14 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
     CategoricalDescriptives <- NULL
   }
 
-  NonNumericColsToDrop <- NonNumericDSColNames[UniqueTexts <= 1]
-  NonNumericDSColNames <- NonNumericDSColNames[UniqueTexts > 1 & (IsFactor | (UniqueTexts <= 15))] #There's no reason to waste time and CPU to plot data with 0 Variation, or if they have too many levels (unique values) and they are not factor
-  NonNumericDS %<>% select(all_of(NonNumericDSColNames))
+  if (NCOL(NonNumericDS) > 0) {
+    NonNumericColsToDrop <- NonNumericDSColNames[UniqueTexts <= 1]
+    NonNumericDSColNames <- NonNumericDSColNames[UniqueTexts > 1 & (IsFactor | (UniqueTexts <= 15))] #There's no reason to waste time and CPU to plot data with 0 Variation, or if they have too many levels (unique values) and they are not factor
+    NonNumericDS %<>% select(all_of(NonNumericDSColNames))
+  } else {
+    NonNumericColsToDrop <- NULL
+    NonNumericDSColNames <- NULL
+  }
 
   if (!NoPrints) {
     if (NROW(NumericDSColNames) > 0) {
@@ -240,7 +363,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
     }
   }
 
-  if (NROW(NumericColsToDrop) > 0) cat("\n[", NROW(NumericColsToDrop), "] Numeric columns were dropped because there was 0 Variation: ", implode(NumericColsToDrop, sep = ","), "\n\n")
+  if (NROW(NumericColsToDrop) > 0) cat("\n[", NROW(NumericColsToDrop), "] Numeric columns were dropped because there was 0 Variation: ", implode(NumericColsToDrop, sep = ", "), "\n\n")
   if (NROW(NonNumericColsToDrop) > 0) cat("[", NROW(NonNumericColsToDrop), "] Categorical columns were dropped because there was 0 Variation: ", implode(NonNumericColsToDrop, sep = ","), "\n\n")
 
   if (is.not.null(DependentVar) && DependentVar %in% c(NumericColsToDrop, NonNumericColsToDrop)) {
@@ -288,33 +411,53 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
   ############################
   CorDS <-
     NumericDS %>%
-    bind_cols(VarDF %>% select_if(function(x) is.logical(x) | NROW(levels(x)) == 2) %>% filter(FilteredIndx)) %>%
+    bind_cols(VarDF %>% select_if(function(x) is.logical(x) | (is.factor(x) & (NROW(levels(x)) == 2 | is.ordered(x)))) %>% filter(FilteredIndx)) %>%
     mutate_if(function(x) is.logical(x) | is.factor(x), as.integer) %>%
     rename_all(Left, 20) %>%
     setNames(make.names(names(.), unique = TRUE))
 
-  if (is.not.null(CorrVarOrder) & NCOL(CorDS) > 1 & NROW(CorDS) > 0) {
-    if (CorrVarOrder == "AB") {
-      NewOrder <- (CorDS %>% names %>% sort(index.return = TRUE))$ix
-    } else {
-      NewOrder <- (CorDS %>% drop_na() %>% as.matrix() %>% seriate(CorrVarOrder, margin = 2))[[1]] %>% as.numeric()
-    }
-  }
 
   if (NCOL(CorDS) > 1) {
     ####################
     #== Correlations ==#
     ####################
+    tryCatch({
+      if (is.not.null(CorrVarOrder) & NCOL(CorDS) > 1 & NROW(CorDS) > 0) {
+        if (CorrVarOrder == "AB") {
+          NewOrder <- (CorDS %>% names %>% sort(index.return = TRUE))$ix
+        } else {
+          NewOrder <- (CorDS %>% {
+            if (is.not.null(GroupBy)) (.) %>% group_by(VarDF %>% pull(!!sym(GroupBy))) else (.)
+          } %>%
+            {
+              if (IsTimeSeries) {
+                (.) %>% tidyr::fill(everything(), .direction = "downup") #Timeseries should be ordered ascending, so the oldest value is 1st, and you fill down missing values, then up
+              } else {
+                (.) %>% mutate_all(function(x) ifelse(is.na(x), mean(x, na.rm = TRUE), x))
+              }
+            } %>%
+            ungroup() %>%
+            select_if(is.numeric) %>%
+            as.matrix() %>%
+            seriate(CorrVarOrder, margin = 2)
+                       )[[1]] %>% as.numeric()
+        }
+      }
+    }, error = function(e) {
+      NewOrder <- NULL
+      cat(paste0("An error occurred when trying to get a cluster Correlation Order for the correlation matrix:\n", e, "\n"))
+    })
+
     #== Pearson ==#
     if (Verbose) cat(toString(now()), "Calculating Pearson Correlations\n")
     #Performing a Pearson's Correlation on the Continuous Variables
     PearsonCor <- CorDS %>% cor(method = "pearson", use = "pairwise.complete.obs") %>% round(2)
     PearsonCorPlot <- PearsonCor
-    #The Upper and Lower Triangles have the same values, so Let's only keep the resulsts once
+    #The Upper and Lower Triangles have the same values, so Let's only keep the results once
     PearsonCor[lower.tri(PearsonCor)] <- NA
     PearsonCor %<>% as_tibble()
 
-    if (is.not.null(CorrVarOrder)) {
+    if (is.not.null(CorrVarOrder) & is.not.null(NewOrder)) {
       PearsonCorOrdered <- PearsonCorPlot[NewOrder, NewOrder]
       PearsonCorOrderedPlot <- PearsonCorOrdered
       PearsonCorOrdered[lower.tri(PearsonCorOrdered)] <- NA
@@ -323,18 +466,41 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
 
     if (CalcPValues == TRUE) {
       if (Verbose) cat(toString(now()), "Calculating Pearson Correlation p.values\n")
-      # PearsonCorPVal <- cor.mtest(CorDS, conf.level = SignificanceLevel, method = "pearson")
-      PearsonCorPVal <- diag(x = 0, nrow = CorDS %>% names %>% NROW())
-      PearsonCorPVal[upper.tri(PearsonCorPVal)] <- apply(combn(CorDS %>% names(), 2), 2, function(Comb) cor.test(CorDS %>% pull(!!Comb[[1]]), CorDS %>% pull(!!Comb[[2]]), conf.level = SignificanceLevel, method = "pearson")$p.value)
-      PearsonCorPVal[lower.tri(PearsonCorPVal)] <- PearsonCorPVal[upper.tri(PearsonCorPVal)]
 
-      rownames(PearsonCorPVal) <- names(CorDS)
-      # rownames(PearsonCorPVal$lowCI) <- names(CorDS)
-      # rownames(PearsonCorPVal$uppCI) <- names(CorDS)
-      colnames(PearsonCorPVal) <- names(CorDS)
-      # colnames(PearsonCorPVal$lowCI) <- names(CorDS)
-      # colnames(PearsonCorPVal$uppCI) <- names(CorDS)
-      if (is.not.null(CorrVarOrder)) PearsonCorOrderedPVal <- PearsonCorPVal[NewOrder, NewOrder] else PearsonCorOrderedPVal <- NULL
+      tryCatch({
+        # PearsonCorPVal <- cor.mtest(CorDS, conf.level = SignificanceLevel, method = "pearson")
+        PearsonCorPVal <- diag(x = 0, nrow = CorDS %>% names %>% NROW())
+        PearsonCorPVal[lower.tri(PearsonCorPVal)] <- apply(combn(CorDS %>% names(), 2), 2, function(Comb) { #In the end, the upper triangle is filled in with values,
+          CurCorDS <- CorDS %>% select(!!Comb[[1]], !!Comb[[2]]) %>% drop_na()
+          CurCorDSNROW <- CurCorDS %>% NROW()
+          if (CurCorDSNROW > 2) {
+            return(cor.test(CorDS %>% pull(!!Comb[[1]]), CorDS %>% pull(!!Comb[[2]]), conf.level = SignificanceLevel, method = "pearson")$p.value)
+          }
+            return(NA)
+          })
+        PearsonCorPVal <- t(PearsonCorPVal) #But because R assigns values to a matrix by column isntead of by row, we counter that by assigning on lower.tri and then transposing.
+        PearsonCorPVal[lower.tri(PearsonCorPVal)] <- t(PearsonCorPVal)[lower.tri(PearsonCorPVal)]
+
+        rownames(PearsonCorPVal) <- names(CorDS)
+        # rownames(PearsonCorPVal$lowCI) <- names(CorDS)
+        # rownames(PearsonCorPVal$uppCI) <- names(CorDS)
+        colnames(PearsonCorPVal) <- names(CorDS)
+        # colnames(PearsonCorPVal$lowCI) <- names(CorDS)
+        # colnames(PearsonCorPVal$uppCI) <- names(CorDS)
+
+        PearsonCorPlot[is.na(PearsonCorPVal)] <- NA #If a p-value is non-calculable we might have just 2 points and show 100% correlation, but it's bogus!
+        if (is.not.null(CorrVarOrder) & is.not.null(NewOrder)) {
+          PearsonCorOrderedPVal <- PearsonCorPVal[NewOrder, NewOrder]
+          PearsonCorOrderedPlot[is.na(PearsonCorOrderedPVal)] <- NA #If a p-value is non-calculable we might have just 2 points and show 100% correlation, but it's bogus!
+        } else {
+            PearsonCorOrderedPVal <- NULL
+            }
+      }, error = function(e) {
+        PearsonCorPVal <- NULL
+        PearsonCorOrderedPVal <- NULL
+        cat(paste0("An error occurred during Pearson p-value calculation:\n", e, "\n"))
+      })
+
     } else {
       PearsonCorPVal <- NULL
       PearsonCorOrderedPVal <- NULL
@@ -350,7 +516,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
     SpearmanCor[lower.tri(SpearmanCor)] <- NA
     SpearmanCor %<>% as_tibble()
 
-    if (is.not.null(CorrVarOrder)) {
+    if (is.not.null(CorrVarOrder) & is.not.null(NewOrder)) {
       SpearmanCorOrdered <- SpearmanCorPlot[NewOrder, NewOrder]
       SpearmanCorOrderedPlot <- SpearmanCorOrdered
       SpearmanCorOrdered[lower.tri(SpearmanCorOrdered)] <- NA
@@ -361,15 +527,31 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       if (Verbose) cat(toString(now()), "Calculating Spearman Correlation p.values\n")
       # SpearmanCorPVal <- cor.mtest(CorDS, conf.level = SignificanceLevel, method = "spearman")
       SpearmanCorPVal <- diag(x = 0, nrow = CorDS %>% names %>% NROW())
-      SpearmanCorPVal[upper.tri(SpearmanCorPVal)] <- apply(combn(CorDS %>% names(), 2), 2, function(Comb) cor.test(CorDS %>% pull(!!Comb[[1]]), CorDS %>% pull(!!Comb[[2]]), conf.level = SignificanceLevel, method = "spearman")$p.value)
-      SpearmanCorPVal[lower.tri(SpearmanCorPVal)] <- SpearmanCorPVal[upper.tri(SpearmanCorPVal)]
+      SpearmanCorPVal[lower.tri(SpearmanCorPVal)] <- apply(combn(CorDS %>% names(), 2), 2, function(Comb) { #In the end, the upper triangle is filled in with values,
+        CurCorDS <- CorDS %>% select(!!Comb[[1]], !!Comb[[2]]) %>% drop_na()
+        CurCorDSNROW <- CurCorDS %>% NROW()
+        if (CurCorDSNROW > 2) {
+          return(cor.test(CorDS %>% pull(!!Comb[[1]]), CorDS %>% pull(!!Comb[[2]]), conf.level = SignificanceLevel, method = "spearman")$p.value)
+        }
+          return(NA)
+        })
+      SpearmanCorPVal <- t(SpearmanCorPVal) #But because R assigns values to a matrix by column isntead of by row, we counter that by assigning on lower.tri and then transposing.
+      SpearmanCorPVal[lower.tri(SpearmanCorPVal)] <- t(SpearmanCorPVal)[lower.tri(SpearmanCorPVal)]
+
       rownames(SpearmanCorPVal) <- names(CorDS)
       # rownames(SpearmanCorPVal$lowCI) <- names(CorDS)
       # rownames(SpearmanCorPVal$uppCI) <- names(CorDS)
       colnames(SpearmanCorPVal) <- names(CorDS)
       # colnames(SpearmanCorPVal$lowCI) <- names(CorDS)
       # colnames(SpearmanCorPVal$uppCI) <- names(CorDS)
-      if (is.not.null(CorrVarOrder)) SpearmanCorOrderedPVal <- SpearmanCorPVal[NewOrder, NewOrder] else SpearmanCorOrderedPVal <- NULL
+
+      SpearmanCorPlot[is.na(SpearmanCorPVal)] <- NA #If a p-value is non-calculable we might have just 2 points and show 100% correlation, but it's bogus!
+      if (is.not.null(CorrVarOrder) & is.not.null(NewOrder)) {
+        SpearmanCorOrderedPVal <- SpearmanCorPVal[NewOrder, NewOrder]
+        SpearmanCorOrderedPlot[is.na(SpearmanCorOrderedPVal)] <- NA #If a p-value is non-calculable we might have just 2 points and show 100% correlation, but it's bogus!
+      } else {
+          SpearmanCorOrderedPVal <- NULL
+      }
     } else {
       SpearmanCorPVal <- NULL
       SpearmanCorOrderedPVal <- NULL
@@ -385,11 +567,11 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
     # invisible(dev.off())
 
     PearsonCorPlot <-
-      ggcorrplot(PearsonCorPlot, method = "square", type = "lower", outline.col = "black", hc.order = (is.not.null(CorrVarOrder) && CorrVarOrder == "hclust"), lab = TRUE, p.mat = PearsonCorPVal, sig.level = SignificanceLevel)
+      ggcorrplot(PearsonCorPlot, method = "square", type = "lower", outline.col = "black", hc.order = FALSE, lab = TRUE, p.mat = PearsonCorPVal, sig.level = SignificanceLevel)
 
     if (is.not.null(CorrVarOrder)) {
       PearsonCorOrderedPlot <-
-        ggcorrplot(PearsonCorOrderedPlot, method = "square", type = "lower", outline.col = "black", hc.order = (is.not.null(CorrVarOrder) && CorrVarOrder == "hclust"), lab = TRUE, p.mat = PearsonCorOrderedPVal, sig.level = SignificanceLevel)
+        ggcorrplot(PearsonCorOrderedPlot, method = "square", type = "lower", outline.col = "black", hc.order = CorrVarOrder == "hclust", lab = TRUE, p.mat = PearsonCorOrderedPVal, sig.level = SignificanceLevel) #For PCA or alphabetical, the order is already applied before.
     } else {
       PearsonCorOrderedPlot <- NULL
     }
@@ -421,17 +603,17 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       #Perason's graph is calculated before
       if(ShowGraphs) print(PearsonCorPlot)
 
-      if (Verbose) cat(toString(now()), "Calculating Spearman Correlation Upper Triangle\n")
+      # if (Verbose) cat(toString(now()), "Calculating Spearman Correlation Upper Triangle\n")
       # corrplot.mixed(SpearmanCorPlot, p.mat = NULL, #SpearmanCorPVal %>% {if(is.not.null(.)) SpearmanCorPVal$p else NULL}, Can't use this because of bug: https://github.com/taiyun/corrplot/issues/120
       #                lower = "number", upper = "square", tl.pos = TitlePosition, tl.cex = TitleSize, sig.level = SignificanceLevel, order = CorrVarOrder)
       # SpearmanCorPlot <- recordPlot()
       # invisible(dev.off())
 
       SpearmanCorPlot <-
-        ggcorrplot(SpearmanCorPlot, method = "square", type = "lower", outline.col = "black", hc.order = (is.not.null(CorrVarOrder) && CorrVarOrder == "hclust"), lab = TRUE, p.mat = SpearmanCorPVal, sig.level = SignificanceLevel)
+        ggcorrplot(SpearmanCorPlot, method = "square", type = "lower", outline.col = "black", hc.order = FALSE, lab = TRUE, p.mat = SpearmanCorPVal, sig.level = SignificanceLevel)
 
       if (is.not.null(CorrVarOrder)) SpearmanCorOrderedPlot <-
-        ggcorrplot(SpearmanCorOrderedPlot, method = "square", type = "lower", outline.col = "black", hc.order = (is.not.null(CorrVarOrder) && CorrVarOrder == "hclust"), lab = TRUE, p.mat = SpearmanCorOrderedPVal, sig.level = SignificanceLevel)
+        ggcorrplot(SpearmanCorOrderedPlot, method = "square", type = "lower", outline.col = "black", hc.order = CorrVarOrder == "hclust", lab = TRUE, p.mat = SpearmanCorOrderedPVal, sig.level = SignificanceLevel) #For PCA or alphabetical, the order is already applied before.
 
       if (ShowGraphs) print(SpearmanCorPlot)
     }
@@ -533,7 +715,10 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       names(BoxplotGraphs) <- NumericDSColNames
     }
 
-    if(ShowGraphs) print(BoxplotGraphs)
+    if(ShowGraphs) grid.arrange(grobs = lapply(NumericDSColNames, function(NumVarName) {
+      ggplotGrob(BoxplotGraphs[[NumVarName]])
+    }),
+    nrow = round(sqrt(NROW(NumericDSColNames))))
 
     #===============#
     #== Per Group ==#
@@ -541,7 +726,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
     #For per group 'AllBoxplotsOn1Page = FALSE' always
     if (is.not.null(GroupBy)) {
       for (NumVarName in NumericDSColNames) {
-        NumericDS_Melted <-
+        NumericDS_Melted <- #Is this just VarDF[c(GroupBy, NumVarName)] %>% rename(variable = GroupBy, value = NumVarName)?? TODO!
           bind_rows(
             lapply(GroupByGroups, function(CurGroup) {
               tibble(
@@ -593,7 +778,8 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       if (is.not.null(GroupBy) & NROW(NonNumericDSColNames) > 1) { #We need +1 because the GroupBy variable is going to dissapear
         BarChartGraphsPerGroup <-
           lapply(NonNumericDSColNames %>% setdiff(GroupBy), function(CatVarName) {
-            CurDS <-
+
+            CurDS <- #TODO! This dataset is just VarDF %>% select(CatVarName, CurGroup)
               bind_rows(
                 lapply(GroupByGroups, function(CurGroup) {
                   tibble(
@@ -606,6 +792,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
             ggplot(data = CurDS) +
               aes(x = !!sym(CatVarName)) +
               geom_bar(aes(fill = !!sym(GroupBy)))
+
           })
         names(BarChartGraphsPerGroup) <- NonNumericDSColNames %>% setdiff(GroupBy)
       }
@@ -878,6 +1065,14 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
         })
 
       names(TimeProgressionPlots) <- TimeSeriesColNames
+
+      if (ShowGraphs) {
+        #Categorical Statistical Inference Graphs
+        grid.arrange(grobs = lapply(TimeSeriesColNames, function(VarName) {
+          ggplotGrob(TimeProgressionPlots[[VarName]])
+        }),
+        nrow = round(sqrt(NROW(TimeSeriesColNames))))
+      }
     }
 
   } #/CalculateGraphs

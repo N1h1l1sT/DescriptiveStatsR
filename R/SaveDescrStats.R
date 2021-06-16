@@ -11,6 +11,8 @@
 #' @param CatHeight An Integer. Height (in pixels) for Categorical Variables' plots
 #' @param TimeSeriesWidth An Integer. Width (in pixels) for the Timeseries plot
 #' @param TimeSeriesHeight An Integer. Height (in pixels) for the Timeseries plot
+#' @param CorrelationsWidth An Integer. Width (in pixels) for the Correlation plots
+#' @param CorrelationsHeight An Integer. Height (in pixels) for the Correlation plots
 #' @keywords Save Descriptive Statistics SaveDescrStats
 #' @export
 #' @examples
@@ -21,9 +23,29 @@
 #'
 #' #Saving everything to a folder on our Hard Drive
 #' MTCarsStats %>% SaveDescrStats("MTCarsFolder")
-SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, NumHeight = 800, CatWidth = 1300, CatHeight = 800, TimeSeriesWidth = NULL, TimeSeriesHeight = NULL) {
-  try(dir.create(file.path(GetParentDir(GetParentDir(path_stats)), GetFileNamesAlone(GetParentDir(path_stats))), showWarnings = FALSE))
-  try(dir.create(file.path(GetParentDir(path_stats), GetFileNamesAlone(path_stats)), showWarnings = FALSE))
+SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, NumHeight = 800, CatWidth = 1300, CatHeight = 800, TimeSeriesWidth = NULL, TimeSeriesHeight = NULL, CorrelationsWidth = NULL, CorrelationsHeight = NULL) {
+  if (!dir.exists(path_stats)) {
+    if (endsWith(path_stats, "/") | endsWith(path_stats, "\\")) path_stats <- substr(path_stats, 1, (nchar(path_stats)-1))
+
+    LastPath <- GetFileNamesAlone(path_stats)
+    ValidLastPath <- make.names(LastPath)
+    if (endsWith(ValidLastPath, ".")) ValidLastPath <- paste0(substr(ValidLastPath, 1, (nchar(ValidLastPath)-1)), "_")
+    path_stats <- paste0(substr(path_stats, 1, nchar(path_stats)-nchar(LastPath)), ValidLastPath, "/")
+
+    # if (!grepl("/", path_stats, fixed = TRUE) && !grepl("\\", path_stats, fixed = TRUE)) {
+    #   path_stats <- paste0(make.names(path_stats))
+    #   if (endsWith(path_stats, ".")) path_stats <- paste0(substr(path_stats, 1, (nchar(path_stats)-1)), "_")
+    #   path_stats <- paste0(getwd(), "/", path_stats, "/")
+    # }
+
+    tmp <- file.path(GetParentDir(GetParentDir(path_stats)), GetFileNamesAlone(GetParentDir(path_stats)))
+    if (!dir.exists(tmp)) try(dir.create(tmp, showWarnings = FALSE))
+    tmp <- file.path(GetParentDir(path_stats), GetFileNamesAlone(path_stats))
+    if (!dir.exists(tmp)) try(dir.create(file.path(GetParentDir(path_stats), GetFileNamesAlone(path_stats)), showWarnings = FALSE))
+    tmp <- file.path(path_stats)
+    if (!dir.exists(tmp)) try(dir.create(file.path(path_stats), showWarnings = FALSE))
+
+  }
 
   if (is.not.null(DescriptiveStatsVar$PerGroupDescrStats)) {
     for (CurGroup in names(DescriptiveStatsVar$PerGroupDescrStats)) {
@@ -40,8 +62,11 @@ SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, Num
   }
 
   if (Right(path_stats, 1) != "/" & Right(path_stats, 1) != "\\") path_stats <- paste0(path_stats, "/")
-  if (is.null(TimeSeriesWidth)) TimeSeriesWidth <- (NumWidth * 1.5)
-  if (is.null(TimeSeriesHeight)) TimeSeriesHeight <- (NumHeight * 1.25)
+  if (is.null(TimeSeriesWidth)) TimeSeriesWidth <- NumWidth * 1.5
+  if (is.null(TimeSeriesHeight)) TimeSeriesHeight <- NumHeight * 1.25
+
+  if (is.null(CorrelationsWidth)) CorrelationsWidth <- NumHeight * 0.65
+  if (is.null(CorrelationsHeight)) CorrelationsHeight <- NumHeight * 0.65
 
   if(NROW(DescriptiveStatsVar$NumericDescriptives) > 0) write.csv(DescriptiveStatsVar$NumericDescriptives, paste0(path_stats, "Numerical Descriptives.csv"), row.names = FALSE)
   if(is.not.null(DescriptiveStatsVar$CategoricalDescriptives)) write.csv(DescriptiveStatsVar$CategoricalDescriptives, paste0(path_stats, "Categorical Descriptives.csv"), row.names = FALSE)
@@ -53,7 +78,7 @@ SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, Num
 
   if (is.not.null(DescriptiveStatsVar$PearsonCorPlot)) {
     tryCatch({
-      png(paste0(path_stats, "Pearson Cor.png"), width = (NumHeight * 0.56), height = (NumHeight * 0.56), units = "px")
+      png(paste0(path_stats, "Pearson Cor.png"), width = CorrelationsWidth, height = CorrelationsHeight, units = "px")
       print(DescriptiveStatsVar$PearsonCorPlot)
     }, warning = function(w) {
     }, error = function(e) {
@@ -64,7 +89,7 @@ SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, Num
 
   if (is.not.null(DescriptiveStatsVar$PearsonCorOrderedPlot)) {
     tryCatch({
-      png(paste0(path_stats, "Pearson Cor Ordered.png"), width = (NumHeight * 0.56), height = (NumHeight * 0.56), units = "px")
+      png(paste0(path_stats, "Pearson Cor Ordered.png"), width = CorrelationsWidth, height = CorrelationsHeight, units = "px")
       print(DescriptiveStatsVar$PearsonCorOrderedPlot)
     }, warning = function(w) {
     }, error = function(e) {
@@ -80,7 +105,7 @@ SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, Num
 
   if (is.not.null(DescriptiveStatsVar$SpearmanCorPlot)) {
     tryCatch({
-      png(paste0(path_stats, "Spearman Cor.png"), width = (NumHeight * 0.56), height = (NumHeight * 0.56), units = "px")
+      png(paste0(path_stats, "Spearman Cor.png"), width = CorrelationsWidth, height = CorrelationsHeight, units = "px")
       print(DescriptiveStatsVar$SpearmanCorPlot)
     }, warning = function(w) {
     }, error = function(e) {
@@ -91,7 +116,7 @@ SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, Num
 
   if (is.not.null(DescriptiveStatsVar$SpearmanCorOrderedPlot)) {
     tryCatch({
-      png(paste0(path_stats, "Spearman Cor Ordered.png"), width = (NumHeight * 0.56), height = (NumHeight * 0.56), units = "px")
+      png(paste0(path_stats, "Spearman Cor Ordered.png"), width = CorrelationsWidth, height = CorrelationsHeight, units = "px")
       print(DescriptiveStatsVar$SpearmanCorOrderedPlot)
     }, warning = function(w) {
     }, error = function(e) {

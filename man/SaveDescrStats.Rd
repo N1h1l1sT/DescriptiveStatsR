@@ -12,7 +12,9 @@ SaveDescrStats(
   CatWidth = 1300,
   CatHeight = 800,
   TimeSeriesWidth = NULL,
-  TimeSeriesHeight = NULL
+  TimeSeriesHeight = NULL,
+  CorrelationsWidth = NULL,
+  CorrelationsHeight = NULL
 )
 }
 \arguments{
@@ -31,6 +33,10 @@ SaveDescrStats(
 \item{TimeSeriesWidth}{An Integer. Width (in pixels) for the Timeseries plot}
 
 \item{TimeSeriesHeight}{An Integer. Height (in pixels) for the Timeseries plot}
+
+\item{CorrelationsWidth}{An Integer. Width (in pixels) for the Correlation plots}
+
+\item{CorrelationsHeight}{An Integer. Height (in pixels) for the Correlation plots}
 }
 \description{
 Gets the output of DescriptiveStats() and no matter what options were selected, saves in a specified folder all the valid Statistics

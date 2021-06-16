@@ -27,6 +27,19 @@ DescriptiveStats(
   CalcPValues = TRUE,
   SignificanceLevel = 0.01,
   CorrVarOrder = "PCA",
+  DatesToNowMinusDate = FALSE,
+  DatesToCyclicMonth = FALSE,
+  DatesToCyclicDayOfWeek = FALSE,
+  DatesToCyclicDayOfMonth = FALSE,
+  DatesToCyclicDayOfYear = FALSE,
+  DatesToYearCat = FALSE,
+  DatesToMonthCat = FALSE,
+  DatesToDayCat = FALSE,
+  DatesToDayOfWeekCat = FALSE,
+  DatesToDayOfMonthCat = FALSE,
+  DatesToDayOfYearCat = FALSE,
+  DatesToHourCat = FALSE,
+  DatesToMinuteCat = FALSE,
   Verbose = NULL
 )
 }
@@ -67,13 +80,37 @@ DescriptiveStats(
 
 \item{SampleIfNRowGT}{Integer. How many rows to keep for the plots. The more the rows, the greater the time it takes to plot everything. ggplot is not optimised for big data, so subsample for plots}
 
-\item{SeedForSampling}{Integer. Doesn't really matter as subsampling is only for plots, but you can set a seed for the subsampling procedure.}
+\item{SeedForSampling}{Integer. Doesn't really matter as subsampling is only for plots, but you can set a seed for the subsampling procedure}
 
 \item{CalcPValues}{Boolean. Whether or not to calculate (and show on plots) the p-values for Pearson and Spearman correlations}
 
 \item{SignificanceLevel}{Numeric. The Significance Level to be used for the p-values for Pearson and Spearman correlations}
 
 \item{CorrVarOrder}{String. AB - Alphabetical, hclust - Order based on Hierarchical cluster analysis, BEA - Bond Energy Algorithm to maximize the measure of effectiveness (ME), PCA - First principal component or angle on the projection on the first two principal components, TSP - Travelling sales person solver to maximize ME}
+
+\item{DatesToNowMinusDate}{Boolean. If TRUE then Dates are transformed into integers reflecting how many seconds have passed since the time on the date}
+
+\item{DatesToCyclicMonth}{Boolean. If TRUE then Dates are transformed into numeric variables containing the cyclic sin and cos of the Month}
+
+\item{DatesToCyclicDayOfWeek}{Boolean. If TRUE then Dates are transformed into numeric variables containing the cyclic sin and cos of the Day-of-week}
+
+\item{DatesToCyclicDayOfMonth}{Boolean. If TRUE then Dates are transformed into numeric variables containing the cyclic sin and cos of the Day-of-month}
+
+\item{DatesToCyclicDayOfYear}{Boolean. If TRUE then Dates are transformed into numeric variables containing the cyclic sin and cos of the Day-of-year}
+
+\item{DatesToYearCat}{Boolean. If TRUE then Dates are transformed into categorical variables containing the Year of the date}
+
+\item{DatesToMonthCat}{Boolean. If TRUE then Dates are transformed into categorical variables containing the Month of the date}
+
+\item{DatesToDayOfWeekCat}{Boolean. If TRUE then Dates are transformed into categorical variables containing the Day-of-week of the date}
+
+\item{DatesToDayOfMonthCat}{Boolean. If TRUE then Dates are transformed into categorical variables containing the Day-of-month of the date}
+
+\item{DatesToDayOfYearCat}{Boolean. If TRUE then Dates are transformed into categorical variables containing the Day-of-Year of the date}
+
+\item{DatesToHourCat}{Boolean. If TRUE then Dates are transformed into categorical variables containing the Hour of the date}
+
+\item{DatesToMinuteCat}{Boolean. If TRUE then Dates are transformed into categorical variables containing the Minute of the date}
 
 \item{Verbose}{Numeric. If there are many columns, calculations can take a long time so we might wanna know when each part finishes and perhaps disable some parts}
 }

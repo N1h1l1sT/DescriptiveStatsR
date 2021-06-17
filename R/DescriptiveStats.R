@@ -91,6 +91,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
                              Verbose = NULL) {
   #VarDF <- tibble(a = runif(100), b = rnorm(100), c = rhyper(100, 50, 40, 20), d = if_else(runif(100) < 0.5, "Less", "More"), e = if_else(rnorm(100) < 0.5, "Low", "High"), f = 5)
 
+  #TODO When Dependent variable is Ordered Factor or Logical, perhaps the "VS Dependent" plots should be done for both the Numerical version of it and the actual Categorical version
   #TODO When saving folders like "Boxplot Graphs Per Group" it should say "Per {VarName}"
   #TODO Another set of Correlations should be produced that include One-Hot-Encoded Factor Variables
   #TODO For time-series: Correlation with lag-variables (lag variables can be a vector for more than 1) both as matrices and as scatterplots
@@ -169,10 +170,10 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
   ######################
   NumericDS <-
     VarDF %>%
-    dplyr::select_if(function(Var) ((IncludeInteger & is.numeric(Var)) | (is.numeric(Var) & !IncludeInteger & !is.integer(Var)) | (is.factor(Var) & is.ordered(Var))) | (
+    dplyr::select_if(function(Var) is.logical(Var) | (IncludeInteger & is.numeric(Var)) | (is.numeric(Var) & !IncludeInteger & !is.integer(Var)) | (is.factor(Var) & is.ordered(Var)) | (
       (is.Date(Var) | is.POSIXct(Var) | is.POSIXlt(Var) | is.POSIXt(Var)) & (DatesToNowMinusDate | DatesToCyclicMonth | DatesToCyclicDayOfWeek | DatesToCyclicDayOfMonth | DatesToCyclicDayOfYear)
       )) %>%
-    mutate_if(is.factor, as.numeric) %>% #It's already ordered because of select_if()
+    mutate_if(function(x) is.factor(x) | is.logical(x), as.numeric) %>% #It's already ordered because of select_if()
     mutate_if(function(x) DatesToCyclicMonth & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
       list(
         SinMon = function(x) {
@@ -411,8 +412,6 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
   ############################
   CorDS <-
     NumericDS %>%
-    bind_cols(VarDF %>% select_if(function(x) is.logical(x) | (is.factor(x) & (NROW(levels(x)) == 2 | is.ordered(x)))) %>% filter(FilteredIndx)) %>%
-    mutate_if(function(x) is.logical(x) | is.factor(x), as.integer) %>%
     rename_all(Left, 20) %>%
     setNames(make.names(names(.), unique = TRUE))
 
@@ -1027,53 +1026,286 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
     ### Time Series ###
     ###################
     if (IsTimeSeries) {
-      TimeSeriesColNames <- c(NumericDSColNames, VarDF %>% select_if(is.logical) %>% names()) %>% unique()
 
       if (Verbose) cat(toString(now()), "Building Time Series Plots\n")
-      TimeseriesDS <-
-        NumericDS %>%
-        bind_cols(VarDF %>% select_if(is.logical) %>% filter(FilteredIndx)) %>%
-        mutate_if(is.logical, as.integer)
 
-      if (is.not.null(DependentVar) && (DependentVar %in% (VarDF %>% names()))) {
-        TimeseriesDS %<>%
-          {if (DependentVar %in% (NumericDS %>% names())) (.) else (.) %>% bind_cols(NonNumericDS %>% select(!!sym(DependentVar)))} #Column-Binding the DependentVariable if it's not already in NumericDS (it's Categorical)
+      if (is.not.null(DependentVar) && (DependentVar %in% names(VarDF))) { #Column-Binding the DependentVariable if it's not already in NumericDS (it's Categorical)
+        if (DependentVar %in% NonNumericDSColNames) {
+          TimeseriesDS <-
+            NumericDS %>%
+            add_column(
+              VarDF %>% select(one_of(DependentVar)) %>% rename(!!sym(DependentVar) := !!sym(paste0("DP_", DependentVar)))
+            )
+        } else {
+          TimeseriesDS <- NumericDS
+        }
       }
 
       if (is.not.null(GroupBy)) TimeseriesDS %<>% group_by(Grp = NonNumericDS[[GroupBy]] %>% as.factor())
       if (is.not.null(TimeFlowVar)) TimeseriesDS$TimeFlow <- TimeFlowVar[FilteredIndx] else TimeseriesDS %<>% mutate(TimeFlow = 1:n())
 
       TimeProgressionPlots <-
-        lapply(TimeSeriesColNames, function(NumVarName) {
+        lapply(NumericDSColNames, function(NumVarName) {
           CurPlot <- ggplot(data = TimeseriesDS, aes(x = TimeFlow, y = !!sym(NumVarName))) +
             geom_point(size = 0.5, alpha = 0.6) +
             geom_line(size = 0.1, color = "black", alpha = 0.3)
 
-          if (is.not.null(DependentVar) && (DependentVar %in% (NumericDS %>% names()))) { #If it's not Numeric, then we can't put a colour gradient depending on it
+          if (is.not.null(DependentVar) && DependentVar %in% NonNumericDSColNames) { #Factor should also work for colour as a set instead of gradient.
+            CurPlot <- CurPlot + aes(color = !!sym(paste0("DP_", DependentVar))) #If an error occurs, then don't throw it away, see how to fix it; it's possible.
+          } else if (is.not.null(DependentVar) && (DependentVar %in% (NumericDS %>% names()))) {
             CurPlot <- CurPlot + aes(color = !!sym(DependentVar))
           } else if (is.not.null(BoxplotPointsColourVar)) {
             CurPlot <- CurPlot + aes(color = BoxplotPointsColourVar)
           }
 
-          CurPlot <- CurPlot +
-            scale_colour_gradient(low = "#FF0000", high = "#0000FF") +
-            theme_minimal()
+          if ((is.not.null(DependentVar) && DependentVar %notin% NonNumericDSColNames) | (is.null(DependentVar) && is.not.null(BoxplotPointsColourVar))) {
+            CurPlot <- CurPlot +
+              scale_colour_gradient(low = "#FF0000", high = "#0000FF") +
+              theme_minimal()
+          }
 
           if (is.not.null(GroupBy)) {CurPlot <- CurPlot + facet_grid(rows = vars(Grp)) + ylab(paste0(NumVarName, " (per ", GroupBy, ")"))}
 
           return(CurPlot)
         })
 
-      names(TimeProgressionPlots) <- TimeSeriesColNames
+      names(TimeProgressionPlots) <- NumericDSColNames
 
       if (ShowGraphs) {
-        #Categorical Statistical Inference Graphs
-        grid.arrange(grobs = lapply(TimeSeriesColNames, function(VarName) {
+        grid.arrange(grobs = lapply(NumericDSColNames, function(VarName) {
           ggplotGrob(TimeProgressionPlots[[VarName]])
         }),
-        nrow = round(sqrt(NROW(TimeSeriesColNames))))
+        nrow = round(sqrt(NROW(NumericDSColNames))))
       }
-    }
+
+
+
+      AutoCorrelationsPlots <-
+        lapply(NumericDSColNames, function(NumVarName) {
+          tryCatch({
+            CurAutoCorPlot <- forecast::ggAcf(
+              TimeseriesDS %>% pull(NumVarName),
+              lag.max = NULL,
+              type = "correlation",
+              plot = TRUE,
+              na.action = na.contiguous,
+              demean = TRUE
+            ) + ggtitle(paste0("Autocorrelation: ", NumVarName))
+            return(CurAutoCorPlot)
+
+          }, error = function(e) {
+            CurAutoCorPlot <- NULL
+            return(CurAutoCorPlot)
+          })
+        })
+
+      names(AutoCorrelationsPlots) <- NumericDSColNames
+
+      if (ShowGraphs) {
+        grid.arrange(grobs = lapply(NumericDSColNames, function(VarName) {
+          ggplotGrob(AutoCorrelationsPlots[[VarName]])
+        }),
+        nrow = round(sqrt(NROW(NumericDSColNames))))
+      }
+
+
+      PartialAutoCorrelationsPlots <-
+        lapply(NumericDSColNames, function(NumVarName) {
+          tryCatch({
+            CurPartAutoCorPlot <- forecast::ggAcf(
+              TimeseriesDS %>% pull(NumVarName),
+              lag.max = NULL,
+              type = "partial",
+              plot = TRUE,
+              na.action = na.contiguous,
+              demean = TRUE
+            ) + ggtitle(paste0("Partial Autocorrelation: ", NumVarName))
+            return(CurPartAutoCorPlot)
+
+          }, error = function(e) {
+            CurPartAutoCorPlot <- NULL
+            return(CurPartAutoCorPlot)
+          })
+        })
+
+      names(PartialAutoCorrelationsPlots) <- NumericDSColNames
+
+      if (ShowGraphs) {
+        grid.arrange(grobs = lapply(NumericDSColNames, function(VarName) {
+          ggplotGrob(PartialAutoCorrelationsPlots[[VarName]])
+        }),
+        nrow = round(sqrt(NROW(NumericDSColNames))))
+      }
+
+
+      AutoCovariancePlots <-
+        lapply(NumericDSColNames, function(NumVarName) {
+          tryCatch({
+            a <- forecast::Acf(
+              TimeseriesDS %>% pull(NumVarName),
+              type = "covariance",
+              lag.max = NULL,
+              plot = FALSE,
+              na.action = na.contiguous,
+              demean = TRUE
+            )
+            CurAutoCovPlot <-
+              ((a$acf[1:NROW(a$lag), 1, 1] %>% enframe(name = NULL, value = NumVarName)) %>%
+                ggplot() +
+                geom_col(aes(x = a$lag, y = !!sym(NumVarName)), width = 0.1, na.rm = FALSE) +
+                xlab("Lag") +
+                ylab("ACF (cov)") +
+                theme_minimal() +
+                theme(
+                  axis.text.x = element_text(size = 14),
+                  axis.text.y = element_text(size = 14, angle = 90),
+                  panel.border = element_rect(colour = "black", fill = NA, size = 1)#,
+                  # plot.title = element_text(hjust = 0.5) #Centre the title
+                )) + ggtitle(paste0("Autocovariance: ", NumVarName))
+            return(CurAutoCovPlot)
+
+          }, error = function(e) {
+            CurAutoCovPlot <- NULL
+            return(CurAutoCovPlot)
+          })
+        })
+
+      names(AutoCovariancePlots) <- NumericDSColNames
+
+      if (ShowGraphs) {
+        grid.arrange(grobs = lapply(NumericDSColNames, function(VarName) {
+          ggplotGrob(AutoCovariancePlots[[VarName]])
+        }),
+        nrow = round(sqrt(NROW(NumericDSColNames))))
+      }
+
+
+      #The tapered versions implement the ACF and PACF estimates and plots described in Hyndman (2015), based on the banded and tapered estimates of autocovariance proposed by McMurry and Politis (2010).
+      TaperedAutoCorrelationsPlots <-
+        lapply(NumericDSColNames, function(NumVarName) {
+          tryCatch({
+            CurTapAutoCorPlot <- ggtaperedacf(
+              TimeseriesDS %>% pull(NumVarName),
+              lag.max = NULL,
+              type = c("correlation"),
+              plot = TRUE,
+              calc.ci = TRUE,
+              level = 95,
+              nsim = 100
+            ) + ggtitle(paste0("Tapered Autocorrelation: ", NumVarName))
+            return(CurTapAutoCorPlot)
+
+          }, error = function(e) {
+            CurTapAutoCorPlot <- NULL
+            return(CurTapAutoCorPlot)
+          })
+        })
+
+      names(TaperedAutoCorrelationsPlots) <- NumericDSColNames
+
+      if (ShowGraphs) {
+        grid.arrange(grobs = lapply(NumericDSColNames, function(VarName) {
+          ggplotGrob(TaperedAutoCorrelationsPlots[[VarName]])
+        }),
+        nrow = round(sqrt(NROW(NumericDSColNames))))
+      }
+
+
+      #The tapered versions implement the ACF and PACF estimates and plots described in Hyndman (2015), based on the banded and tapered estimates of autocovariance proposed by McMurry and Politis (2010).
+      TaperedAutoCovariancePlots <-
+        lapply(NumericDSColNames, function(NumVarName) {
+          tryCatch({
+            CurTapPAutoCorPlot <- ggtaperedacf(
+              TimeseriesDS %>% pull(NumVarName),
+              lag.max = NULL,
+              type = c("partial"),
+              plot = TRUE,
+              calc.ci = TRUE,
+              level = 95,
+              nsim = 100
+            ) + ggtitle(paste0("Tapered Autocovariance: ", NumVarName))
+            return(CurTapPAutoCorPlot)
+
+          }, error = function(e) {
+            CurTapPAutoCorPlot <- NULL
+            return(CurTapPAutoCorPlot)
+          })
+        })
+
+      names(TaperedAutoCovariancePlots) <- NumericDSColNames
+
+      if (ShowGraphs) {
+        grid.arrange(grobs = lapply(NumericDSColNames, function(VarName) {
+          ggplotGrob(TaperedAutoCovariancePlots[[VarName]])
+        }),
+        nrow = round(sqrt(NROW(NumericDSColNames))))
+      }
+
+
+      #== Crosscorrelations for Versus Numerical Dependent ==#
+      CrossCorrelationPlots <- NULL
+      CrossCovariancePlots <- NULL
+      if (DependentVar %in% NumericDSColNames) {
+
+          CrossCorrelationPlots <-
+            lapply(StatInferNumGraphsColNames, function(NumVarName) {
+              tryCatch({
+                CurCrossCorPlot <- ggCcf(
+                  TimeseriesDS %>% pull(NumVarName),
+                  TimeseriesDS %>% pull(DependentVar),
+                  lag.max = NULL,
+                  type = c("correlation"),
+                  plot = TRUE,
+                  na.action = na.contiguous
+                ) + ggtitle(paste0(NumVarName, " VS ", DependentVar))
+                return(CurCrossCorPlot)
+
+              }, error = function(e) {
+                CurCrossCorPlot <- NULL
+                return(CurCrossCorPlot)
+              })
+            })
+
+          names(CrossCorrelationPlots) <- StatInferNumGraphsColNames
+
+          if (ShowGraphs) {
+            grid.arrange(grobs = lapply(StatInferNumGraphsColNames, function(VarName) {
+              ggplotGrob(CrossCorrelationPlots[[VarName]])
+            }),
+            nrow = round(sqrt(NROW(StatInferNumGraphsColNames))))
+          }
+
+
+          CrossCovariancePlots <-
+            lapply(StatInferNumGraphsColNames, function(NumVarName) {
+              tryCatch({
+                CurCrossCovPlot <- ggCcf(
+                  TimeseriesDS %>% pull(NumVarName),
+                  TimeseriesDS %>% pull(DependentVar),
+                  lag.max = NULL,
+                  type = c("covariance"),
+                  plot = TRUE,
+                  na.action = na.contiguous
+                ) + ggtitle(paste0(NumVarName, " VS ", DependentVar))
+                return(CurCrossCovPlot)
+              }, error = function(e) {
+                CurCrossCovPlot <- NULL
+                return(CurCrossCovPlot)
+              })
+            })
+
+          names(CrossCovariancePlots) <- StatInferNumGraphsColNames
+
+          if (ShowGraphs) {
+            grid.arrange(grobs = lapply(StatInferNumGraphsColNames, function(VarName) {
+              ggplotGrob(CrossCovariancePlots[[VarName]])
+            }),
+            nrow = round(sqrt(NROW(StatInferNumGraphsColNames))))
+          }
+
+      } #/Crosscorrelations for Versus Numerical Dependent
+
+    } #/IsTimeSeries
 
   } #/CalculateGraphs
 
@@ -1104,7 +1336,14 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       NumericVSDependentGraphsPerGroup = StatInferNumGraphsPerGroup,
       CategoricalVSDependentGraphs = StatInferCatGraphs,
       CategoricalVSDependentGraphsPerGroup = StatInferCatGraphsPerGroup,
-      TimeProgressionPlots = TimeProgressionPlots
+      TimeProgressionPlots = TimeProgressionPlots,
+      AutoCorrelationsPlots = AutoCorrelationsPlots,
+      PartialAutoCorrelationsPlots = PartialAutoCorrelationsPlots,
+      AutoCovariancePlots = AutoCovariancePlots,
+      TaperedAutoCorrelationsPlots = TaperedAutoCorrelationsPlots,
+      TaperedAutoCovariancePlots = TaperedAutoCovariancePlots,
+      CrossCorrelationPlots = CrossCorrelationPlots,
+      CrossCovariancePlots = CrossCovariancePlots
     )
   )
 } #/DescriptiveStats

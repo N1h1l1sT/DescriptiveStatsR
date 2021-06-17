@@ -27,6 +27,7 @@ DescriptiveStats(
   CalcPValues = TRUE,
   SignificanceLevel = 0.01,
   CorrVarOrder = "PCA",
+  TimeseriesMaxLag = NULL,
   DatesToNowMinusDate = FALSE,
   DatesToCyclicMonth = FALSE,
   DatesToCyclicDayOfWeek = FALSE,
@@ -87,6 +88,8 @@ DescriptiveStats(
 \item{SignificanceLevel}{Numeric. The Significance Level to be used for the p-values for Pearson and Spearman correlations}
 
 \item{CorrVarOrder}{String. AB - Alphabetical, hclust - Order based on Hierarchical cluster analysis, BEA - Bond Energy Algorithm to maximize the measure of effectiveness (ME), PCA - First principal component or angle on the projection on the first two principal components, TSP - Travelling sales person solver to maximize ME}
+
+\item{TimeseriesMaxLag}{Boolean. Max lag for Auto Correlation/Covariance plots.}
 
 \item{DatesToNowMinusDate}{Boolean. If TRUE then Dates are transformed into integers reflecting how many seconds have passed since the time on the date}
 

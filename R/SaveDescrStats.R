@@ -337,5 +337,126 @@ SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, Num
     })
   }
 
+  ### Auto Correlations Plots
+  if (NROW(DescriptiveStatsVar$AutoCorrelationsPlots) > 0) {
+    tryCatch({
+      png(paste0(path_stats, "Autocorrelations.png"), width = TimeSeriesWidth, height = TimeSeriesHeight, units = "px")
+      suppressWarnings(
+        grid.arrange(grobs = lapply(names(DescriptiveStatsVar$AutoCorrelationsPlots), function(x) {
+          ggplotGrob(DescriptiveStatsVar$AutoCorrelationsPlots[[x]])
+        }),
+        nrow = round(sqrt(NROW(names(DescriptiveStatsVar$AutoCorrelationsPlots)))))
+      )
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+
+  ### Partial Auto Correlations Plots
+  if (NROW(DescriptiveStatsVar$PartialAutoCorrelationsPlots) > 0) {
+    tryCatch({
+      png(paste0(path_stats, "Partial Autocorrelations.png"), width = TimeSeriesWidth, height = TimeSeriesHeight, units = "px")
+      suppressWarnings(
+        grid.arrange(grobs = lapply(names(DescriptiveStatsVar$PartialAutoCorrelationsPlots), function(x) {
+          ggplotGrob(DescriptiveStatsVar$PartialAutoCorrelationsPlots[[x]])
+        }),
+        nrow = round(sqrt(NROW(names(DescriptiveStatsVar$PartialAutoCorrelationsPlots)))))
+      )
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+
+  ### Auto Covariance
+  if (NROW(DescriptiveStatsVar$AutoCovariancePlots) > 0) {
+    tryCatch({
+      png(paste0(path_stats, "Autocovariances.png"), width = TimeSeriesWidth, height = TimeSeriesHeight, units = "px")
+      suppressWarnings(
+        grid.arrange(grobs = lapply(names(DescriptiveStatsVar$AutoCovariancePlots), function(x) {
+          ggplotGrob(DescriptiveStatsVar$AutoCovariancePlots[[x]])
+        }),
+        nrow = round(sqrt(NROW(names(DescriptiveStatsVar$AutoCovariancePlots)))))
+      )
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+
+  ### Tapered Auto Correlations
+  if (NROW(DescriptiveStatsVar$TaperedAutoCorrelationsPlots) > 0) {
+    tryCatch({
+      png(paste0(path_stats, "Tapered Autocorrelations.png"), width = TimeSeriesWidth, height = TimeSeriesHeight, units = "px")
+      suppressWarnings(
+        grid.arrange(grobs = lapply(names(DescriptiveStatsVar$TaperedAutoCorrelationsPlots), function(x) {
+          ggplotGrob(DescriptiveStatsVar$TaperedAutoCorrelationsPlots[[x]])
+        }),
+        nrow = round(sqrt(NROW(names(DescriptiveStatsVar$TaperedAutoCorrelationsPlots)))))
+      )
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+
+
+  ### Tapered Partial Auto Correlations
+  if (NROW(DescriptiveStatsVar$TaperedPartialAutoCorrelationsPlots) > 0) {
+    tryCatch({
+      png(paste0(path_stats, "Tapered Partial Autocorrelations.png"), width = TimeSeriesWidth, height = TimeSeriesHeight, units = "px")
+      suppressWarnings(
+        grid.arrange(grobs = lapply(names(DescriptiveStatsVar$TaperedPartialAutoCorrelationsPlots), function(x) {
+          ggplotGrob(DescriptiveStatsVar$TaperedPartialAutoCorrelationsPlots[[x]])
+        }),
+        nrow = round(sqrt(NROW(names(DescriptiveStatsVar$TaperedPartialAutoCorrelationsPlots)))))
+      )
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+
+
+  ### Cross Correlation Plots
+  if (NROW(DescriptiveStatsVar$CrossCorrelationPlots) > 0) {
+    tryCatch({
+      png(paste0(path_stats, "Cross Correlations with Dependent Variable.png"), width = TimeSeriesWidth, height = TimeSeriesHeight, units = "px")
+      suppressWarnings(
+        grid.arrange(grobs = lapply(names(DescriptiveStatsVar$CrossCorrelationPlots), function(x) {
+          ggplotGrob(DescriptiveStatsVar$CrossCorrelationPlots[[x]])
+        }),
+        nrow = round(sqrt(NROW(names(DescriptiveStatsVar$CrossCorrelationPlots)))))
+      )
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+
+  ### Cross Covariance Plots
+  if (NROW(DescriptiveStatsVar$CrossCovariancePlots) > 0) {
+    tryCatch({
+      png(paste0(path_stats, "Cross Covariances with Dependent Variable.png"), width = TimeSeriesWidth, height = TimeSeriesHeight, units = "px")
+      suppressWarnings(
+        grid.arrange(grobs = lapply(names(DescriptiveStatsVar$CrossCovariancePlots), function(x) {
+          ggplotGrob(DescriptiveStatsVar$CrossCovariancePlots[[x]])
+        }),
+        nrow = round(sqrt(NROW(names(DescriptiveStatsVar$CrossCovariancePlots)))))
+      )
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
+  }
+
   return(paste0("Descriptive Statistics Results and Plots have been saved on: ", path_stats))
 } #/SaveDescrStats

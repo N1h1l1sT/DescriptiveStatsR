@@ -49,6 +49,7 @@
 #' @param GroupBy String. If you want to get statistics per group in addition to the general ones, then mention which Column of VarDF should be used as the grouping variable
 #' @param TimeFlowVar String or Date/Numeric Vector. The variable name to be used as X-Axis on TimeFlow plots. The Variable corresponding to this string can be Date or Numeric
 #' @param CorrVarOrder String. AB - Alphabetical, hclust - Order based on Hierarchical cluster analysis, BEA - Bond Energy Algorithm to maximize the measure of effectiveness (ME), PCA - First principal component or angle on the projection on the first two principal components, TSP - Travelling sales person solver to maximize ME
+#' @param TimeseriesMaxLag Boolean. Max lag for Auto Correlation/Covariance plots.
 #' @param BoxPlotPointSize Numeric. How big or small you want the dots on the Boxplots to be. Usually a value between 0.1 and 1. The more the rows, the less the value here
 #' @param BoxPlotPointAlpha Numeric. How transparent you want the dots on the Boxplots to be. Usually a value between 0.1 and 1. The more the rows, the less the value here
 #' @param SampleIfNRowGT Integer. How many rows to keep for the plots. The more the rows, the greater the time it takes to plot everything. ggplot is not optimised for big data, so subsample for plots
@@ -84,13 +85,16 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
                              AllHistsOn1Page = TRUE, AllBoxplotsOn1Page = FALSE, AllBarChartsOn1Page = TRUE, DependentVar = NULL, ShowGraphs = FALSE, BoxplotPointsColourVar = NULL,
                              NoPrints = FALSE, IsTimeSeries = FALSE, GroupBy = NULL, TimeFlowVar = NULL,
                              BoxPlotPointSize = 0.4, BoxPlotPointAlpha = 0.1, SampleIfNRowGT = 10000, SeedForSampling = NULL,
-                             CalcPValues = TRUE, SignificanceLevel = 0.01, CorrVarOrder = "PCA", DatesToNowMinusDate = FALSE,
+                             CalcPValues = TRUE, SignificanceLevel = 0.01, CorrVarOrder = "PCA", TimeseriesMaxLag = NULL, DatesToNowMinusDate = FALSE,
                              DatesToCyclicMonth = FALSE, DatesToCyclicDayOfWeek = FALSE, DatesToCyclicDayOfMonth = FALSE, DatesToCyclicDayOfYear = FALSE,
                              DatesToYearCat = FALSE, DatesToMonthCat = FALSE, DatesToDayCat = FALSE, DatesToDayOfWeekCat = FALSE, DatesToDayOfMonthCat = FALSE,
                              DatesToDayOfYearCat = FALSE, DatesToHourCat = FALSE, DatesToMinuteCat = FALSE,
                              Verbose = NULL) {
   #VarDF <- tibble(a = runif(100), b = rnorm(100), c = rhyper(100, 50, 40, 20), d = if_else(runif(100) < 0.5, "Less", "More"), e = if_else(rnorm(100) < 0.5, "Low", "High"), f = 5)
 
+  #TODO Scatterplot of Timeseries variables at t VS t-lag
+  #TODO GroupBy should be able to be a vector and so Per Group statistics should be calculated for each Group in GroupBy()
+  #TODO Create a Variance/Covariance Matrix / Plot
   #TODO When Dependent variable is Ordered Factor or Logical, perhaps the "VS Dependent" plots should be done for both the Numerical version of it and the actual Categorical version
   #TODO When saving folders like "Boxplot Graphs Per Group" it should say "Per {VarName}"
   #TODO Another set of Correlations should be produced that include One-Hot-Encoded Factor Variables
@@ -98,7 +102,6 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
   #TODO Variance/Covariance matrix for numeric (ordinal, logical) variables
   #TODO Categorical Descriptives: Mode
   #TODO Choose Upper or Lower Triangle for Correlations
-  #TODO Expand this so it can also understand dates, bits/logical, and perhaps other kinds as well
 
   #Making sure the names of the Dataframe as valid (no duplicates and only valid characters inside)
   if (is.not.null(DependentVar)) DependentVarIdx <- (names(VarDF) == DependentVar) %>% {ifelse(sum(.) > 0, which.max(.), numeric(0))} else DependentVarIdx <- NULL
@@ -1029,16 +1032,13 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
 
       if (Verbose) cat(toString(now()), "Building Time Series Plots\n")
 
-      if (is.not.null(DependentVar) && (DependentVar %in% names(VarDF))) { #Column-Binding the DependentVariable if it's not already in NumericDS (it's Categorical)
-        if (DependentVar %in% NonNumericDSColNames) {
-          TimeseriesDS <-
-            NumericDS %>%
-            add_column(
-              VarDF %>% select(one_of(DependentVar)) %>% rename(!!sym(DependentVar) := !!sym(paste0("DP_", DependentVar)))
-            )
-        } else {
-          TimeseriesDS <- NumericDS
-        }
+      TimeseriesDS <- NumericDS #No matter what, if it's time series then the starting point is the NumericDS
+
+      if (is.not.null(DependentVar) && NROW(DependentVar) > 0 && (DependentVar %in% NonNumericDSColNames)) { #Column-Binding the DependentVariable if it's not already in NumericDS (it's Categorical)
+        TimeseriesDS %<>%
+          add_column(
+            NonNumericDS %>% select(one_of(DependentVar)) %>% rename(!!sym(DependentVar) := !!sym(paste0("DP_", DependentVar)))
+          )
       }
 
       if (is.not.null(GroupBy)) TimeseriesDS %<>% group_by(Grp = NonNumericDS[[GroupBy]] %>% as.factor())
@@ -1085,16 +1085,20 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
           tryCatch({
             CurAutoCorPlot <- forecast::ggAcf(
               TimeseriesDS %>% pull(NumVarName),
-              lag.max = NULL,
+              lag.max = TimeseriesMaxLag,
               type = "correlation",
               plot = TRUE,
               na.action = na.contiguous,
               demean = TRUE
-            ) + ggtitle(paste0("Autocorrelation: ", NumVarName))
+            )
+            if ((CurAutoCorPlot$data %>% NROW()) == 0) {
+              stop("Probably not enough data to plot")
+            }
+            CurAutoCorPlot <- CurAutoCorPlot + ggtitle(paste0("Autocorrelation: ", NumVarName))
             return(CurAutoCorPlot)
 
           }, error = function(e) {
-            CurAutoCorPlot <- NULL
+            CurAutoCorPlot <- ggplot() + ggtitle(paste0(NumVarName, ": Probably not enough data to plot"), subtitle = e)
             return(CurAutoCorPlot)
           })
         })
@@ -1114,16 +1118,20 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
           tryCatch({
             CurPartAutoCorPlot <- forecast::ggAcf(
               TimeseriesDS %>% pull(NumVarName),
-              lag.max = NULL,
+              lag.max = TimeseriesMaxLag,
               type = "partial",
               plot = TRUE,
               na.action = na.contiguous,
               demean = TRUE
-            ) + ggtitle(paste0("Partial Autocorrelation: ", NumVarName))
+            )
+            if ((CurPartAutoCorPlot$data %>% NROW()) == 0) {
+              stop("Probably not enough data to plot")
+            }
+            CurPartAutoCorPlot <- CurPartAutoCorPlot + ggtitle(paste0("Partial Autocorrelation: ", NumVarName))
             return(CurPartAutoCorPlot)
 
           }, error = function(e) {
-            CurPartAutoCorPlot <- NULL
+            CurPartAutoCorPlot <- ggplot() + ggtitle(paste0(NumVarName, ": Probably not enough data to plot"), subtitle = e)
             return(CurPartAutoCorPlot)
           })
         })
@@ -1141,18 +1149,21 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       AutoCovariancePlots <-
         lapply(NumericDSColNames, function(NumVarName) {
           tryCatch({
-            a <- forecast::Acf(
+            CurACF <- forecast::Acf(
               TimeseriesDS %>% pull(NumVarName),
               type = "covariance",
-              lag.max = NULL,
+              lag.max = TimeseriesMaxLag,
               plot = FALSE,
               na.action = na.contiguous,
               demean = TRUE
             )
+            if ((CurACF$acf %>% NROW()) == 0) {
+              stop("Probably not enough data to plot")
+            }
             CurAutoCovPlot <-
-              ((a$acf[1:NROW(a$lag), 1, 1] %>% enframe(name = NULL, value = NumVarName)) %>%
+              ((CurACF$acf[1:NROW(CurACF$lag), 1, 1] %>% enframe(name = NULL, value = NumVarName)) %>%
                 ggplot() +
-                geom_col(aes(x = a$lag, y = !!sym(NumVarName)), width = 0.1, na.rm = FALSE) +
+                geom_col(aes(x = CurACF$lag, y = !!sym(NumVarName)), width = 0.1, na.rm = FALSE) +
                 xlab("Lag") +
                 ylab("ACF (cov)") +
                 theme_minimal() +
@@ -1165,7 +1176,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
             return(CurAutoCovPlot)
 
           }, error = function(e) {
-            CurAutoCovPlot <- NULL
+            CurAutoCovPlot <- ggplot() + ggtitle(paste0(NumVarName, ": Probably not enough data to plot"), subtitle = e)
             return(CurAutoCovPlot)
           })
         })
@@ -1184,19 +1195,25 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       TaperedAutoCorrelationsPlots <-
         lapply(NumericDSColNames, function(NumVarName) {
           tryCatch({
-            CurTapAutoCorPlot <- ggtaperedacf(
+            CurTapAutoCorPlot <- forecast::ggtaperedacf(
               TimeseriesDS %>% pull(NumVarName),
-              lag.max = NULL,
+              lag.max = TimeseriesMaxLag,
               type = c("correlation"),
               plot = TRUE,
               calc.ci = TRUE,
               level = 95,
               nsim = 100
-            ) + ggtitle(paste0("Tapered Autocorrelation: ", NumVarName))
+            )
+            #Unfortunately its '$data' doesn't contain the data so we can't check for NROW==0
+            #This might lead to errors not captured by the tryCatch and spiral into errors of saving or even not finishing running this function
+            # if ((CurTapAutoCorPlot$data %>% NROW()) == 0) {
+            #   stop("Probably not enough data to plot")
+            # }
+            CurTapAutoCorPlot <- CurTapAutoCorPlot + ggtitle(paste0("Tapered Autocorrelation: ", NumVarName))
             return(CurTapAutoCorPlot)
 
           }, error = function(e) {
-            CurTapAutoCorPlot <- NULL
+            CurTapAutoCorPlot <- ggplot() + ggtitle(paste0(NumVarName, ": Probably not enough data to plot"), subtitle = e)
             return(CurTapAutoCorPlot)
           })
         })
@@ -1212,31 +1229,37 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
 
 
       #The tapered versions implement the ACF and PACF estimates and plots described in Hyndman (2015), based on the banded and tapered estimates of autocovariance proposed by McMurry and Politis (2010).
-      TaperedAutoCovariancePlots <-
+      TaperedPartialAutoCorrelationsPlots <-
         lapply(NumericDSColNames, function(NumVarName) {
           tryCatch({
-            CurTapPAutoCorPlot <- ggtaperedacf(
+            CurTapPAutoCorPlot <- forecast::ggtaperedacf(
               TimeseriesDS %>% pull(NumVarName),
-              lag.max = NULL,
+              lag.max = TimeseriesMaxLag,
               type = c("partial"),
               plot = TRUE,
               calc.ci = TRUE,
               level = 95,
               nsim = 100
-            ) + ggtitle(paste0("Tapered Autocovariance: ", NumVarName))
+            )
+            #Unfortunately its '$data' doesn't contain the data so we can't check for NROW==0
+            #This might lead to errors not captured by the tryCatch and spiral into errors of saving or even not finishing running this function
+            # if ((CurTapPAutoCorPlot$data %>% NROW()) == 0) {
+            #   stop("Probably not enough data to plot")
+            # }
+            CurTapPAutoCorPlot <- CurTapPAutoCorPlot + ggtitle(paste0("Tapered Autocovariance: ", NumVarName))
             return(CurTapPAutoCorPlot)
 
           }, error = function(e) {
-            CurTapPAutoCorPlot <- NULL
+            CurTapPAutoCorPlot <- ggplot() + ggtitle(paste0(NumVarName, ": Probably not enough data to plot"), subtitle = e)
             return(CurTapPAutoCorPlot)
           })
         })
 
-      names(TaperedAutoCovariancePlots) <- NumericDSColNames
+      names(TaperedPartialAutoCorrelationsPlots) <- NumericDSColNames
 
       if (ShowGraphs) {
         grid.arrange(grobs = lapply(NumericDSColNames, function(VarName) {
-          ggplotGrob(TaperedAutoCovariancePlots[[VarName]])
+          ggplotGrob(TaperedPartialAutoCorrelationsPlots[[VarName]])
         }),
         nrow = round(sqrt(NROW(NumericDSColNames))))
       }
@@ -1245,23 +1268,27 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       #== Crosscorrelations for Versus Numerical Dependent ==#
       CrossCorrelationPlots <- NULL
       CrossCovariancePlots <- NULL
-      if (DependentVar %in% NumericDSColNames) {
+      if (is.not.null(DependentVar) && NROW(NumericDSColNames) > 0 && DependentVar %in% NumericDSColNames) {
 
           CrossCorrelationPlots <-
             lapply(StatInferNumGraphsColNames, function(NumVarName) {
               tryCatch({
-                CurCrossCorPlot <- ggCcf(
+                CurCrossCorPlot <- forecast::ggCcf(
                   TimeseriesDS %>% pull(NumVarName),
                   TimeseriesDS %>% pull(DependentVar),
-                  lag.max = NULL,
+                  lag.max = TimeseriesMaxLag,
                   type = c("correlation"),
                   plot = TRUE,
                   na.action = na.contiguous
-                ) + ggtitle(paste0(NumVarName, " VS ", DependentVar))
+                )
+                if ((CurCrossCorPlot$data %>% NROW()) == 0) {
+                  stop("Probably not enough data to plot")
+                }
+                CurCrossCorPlot <- CurCrossCorPlot + ggtitle(paste0(NumVarName, " VS ", DependentVar))
                 return(CurCrossCorPlot)
 
               }, error = function(e) {
-                CurCrossCorPlot <- NULL
+                CurCrossCorPlot <- ggplot() + ggtitle(paste0(NumVarName, ": Probably not enough data to plot"), subtitle = e)
                 return(CurCrossCorPlot)
               })
             })
@@ -1279,17 +1306,21 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
           CrossCovariancePlots <-
             lapply(StatInferNumGraphsColNames, function(NumVarName) {
               tryCatch({
-                CurCrossCovPlot <- ggCcf(
+                CurCrossCovPlot <- forecast::ggCcf(
                   TimeseriesDS %>% pull(NumVarName),
                   TimeseriesDS %>% pull(DependentVar),
-                  lag.max = NULL,
+                  lag.max = TimeseriesMaxLag,
                   type = c("covariance"),
                   plot = TRUE,
                   na.action = na.contiguous
-                ) + ggtitle(paste0(NumVarName, " VS ", DependentVar))
+                )
+                if ((CurCrossCovPlot$data %>% NROW()) == 0) {
+                  stop("Probably not enough data to plot")
+                }
+                CurCrossCovPlot <- CurCrossCovPlot + ggtitle(paste0(NumVarName, " VS ", DependentVar))
                 return(CurCrossCovPlot)
               }, error = function(e) {
-                CurCrossCovPlot <- NULL
+                CurCrossCovPlot <- ggplot() + ggtitle(paste0(NumVarName, ": Probably not enough data to plot"), subtitle = e)
                 return(CurCrossCovPlot)
               })
             })
@@ -1341,7 +1372,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       PartialAutoCorrelationsPlots = PartialAutoCorrelationsPlots,
       AutoCovariancePlots = AutoCovariancePlots,
       TaperedAutoCorrelationsPlots = TaperedAutoCorrelationsPlots,
-      TaperedAutoCovariancePlots = TaperedAutoCovariancePlots,
+      TaperedPartialAutoCorrelationsPlots = TaperedPartialAutoCorrelationsPlots,
       CrossCorrelationPlots = CrossCorrelationPlots,
       CrossCovariancePlots = CrossCovariancePlots
     )

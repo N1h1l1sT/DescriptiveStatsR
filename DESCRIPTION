@@ -1,7 +1,7 @@
 Package: DescriptiveStatsR
 Type: Package
 Title: Descriptive Statistics, Statistical Inference and Plots, easily and for any DataFrame
-Version: 1.1.1
+Version: 1.1.2
 Authors@R: c(
 	person("Ioannis", "Mamalikidis", email = "Giannis_Mamalikidis@msn.com", role = c("aut", "cre"))
 	)

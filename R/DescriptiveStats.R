@@ -597,6 +597,13 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
   StatInferCatGraphs <- NULL
   StatInferCatGraphsPerGroup <- NULL
   TimeProgressionPlots <- NULL
+  AutoCorrelationsPlots = NULL
+  PartialAutoCorrelationsPlots = NULL
+  AutoCovariancePlots = NULL
+  TaperedAutoCorrelationsPlots = NULL
+  TaperedPartialAutoCorrelationsPlots = NULL
+  CrossCorrelationPlots = NULL
+  CrossCovariancePlots = NULL
   #==========================#
   #=== Calculating Graphs ===#
   #==========================#

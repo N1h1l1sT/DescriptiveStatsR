@@ -49,7 +49,7 @@
 #' @param GroupBy String. If you want to get statistics per group in addition to the general ones, then mention which Column of VarDF should be used as the grouping variable
 #' @param TimeFlowVar String or Date/Numeric Vector. The variable name to be used as X-Axis on TimeFlow plots. The Variable corresponding to this string can be Date or Numeric
 #' @param CorrVarOrder String. AB - Alphabetical, hclust - Order based on Hierarchical cluster analysis, BEA - Bond Energy Algorithm to maximize the measure of effectiveness (ME), PCA - First principal component or angle on the projection on the first two principal components, TSP - Travelling sales person solver to maximize ME
-#' @param TimeseriesMaxLag Boolean. Max lag for Auto Correlation/Covariance plots.
+#' @param TimeseriesMaxLag Integer. Max lag for Auto Correlation/Covariance plots.
 #' @param BoxPlotPointSize Numeric. How big or small you want the dots on the Boxplots to be. Usually a value between 0.1 and 1. The more the rows, the less the value here
 #' @param BoxPlotPointAlpha Numeric. How transparent you want the dots on the Boxplots to be. Usually a value between 0.1 and 1. The more the rows, the less the value here
 #' @param SampleIfNRowGT Integer. How many rows to keep for the plots. The more the rows, the greater the time it takes to plot everything. ggplot is not optimised for big data, so subsample for plots
@@ -68,6 +68,8 @@
 #' @param DatesToDayOfYearCat Boolean. If TRUE then Dates are transformed into categorical variables containing the Day-of-Year of the date
 #' @param DatesToHourCat Boolean. If TRUE then Dates are transformed into categorical variables containing the Hour of the date
 #' @param DatesToMinuteCat Boolean. If TRUE then Dates are transformed into categorical variables containing the Minute of the date
+#' @param ExcludeTaperedAutocor Boolean. Only counts if IsTimeSeries==TRUE. If TRUE then the TaperedAutocorrelation and TaperedPartialAutocorrelation will not be computed
+#' @param MaxTaperedRows Integer. Probably a good idea to not increase it as the time it takes is excessive then
 #' @param Verbose Numeric. If there are many columns, calculations can take a long time so we might wanna know when each part finishes and perhaps disable some parts
 #' @keywords Descriptive Statistics DescriptiveStats DescrStats
 #' @export
@@ -89,6 +91,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
                              DatesToCyclicMonth = FALSE, DatesToCyclicDayOfWeek = FALSE, DatesToCyclicDayOfMonth = FALSE, DatesToCyclicDayOfYear = FALSE,
                              DatesToYearCat = FALSE, DatesToMonthCat = FALSE, DatesToDayCat = FALSE, DatesToDayOfWeekCat = FALSE, DatesToDayOfMonthCat = FALSE,
                              DatesToDayOfYearCat = FALSE, DatesToHourCat = FALSE, DatesToMinuteCat = FALSE,
+                             ExcludeTaperedAutocor = FALSE, MaxTaperedRows = 250,
                              Verbose = NULL) {
   #VarDF <- tibble(a = runif(100), b = rnorm(100), c = rhyper(100, 50, 40, 20), d = if_else(runif(100) < 0.5, "Less", "More"), e = if_else(rnorm(100) < 0.5, "Low", "High"), f = 5)
 
@@ -136,6 +139,9 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
     }
   }
 
+
+  TimeseriesMaxLag <- ifelse(is.null(TimeseriesMaxLag), min(NROW(VarDF), 30), TimeseriesMaxLag)
+
   PerGroupDescrStats <- NULL
   if (is.not.null(GroupBy)) {
     GroupByGroups <- VarDF %>% pull(!!GroupBy) %>% as.factor() %>% unique() %>% {as.character(.)[as.character(.) %in% levels(.)]} #TODO! Changes the order of ordered factors (is.ordered = TRUE)
@@ -159,8 +165,9 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
                            GroupBy = NULL,
                            TimeFlowVar = TimeFlowVar[CurGroupFilterIndx[[CurGroup]]],
                              BoxPlotPointSize = BoxPlotPointSize, BoxPlotPointAlpha = BoxPlotPointAlpha, SampleIfNRowGT = SampleIfNRowGT, SeedForSampling = SeedForSampling,
-                             CalcPValues = CalcPValues, SignificanceLevel = SignificanceLevel, CorrVarOrder = CorrVarOrder,
-                           Verbose = FALSE
+                             CalcPValues = CalcPValues, SignificanceLevel = SignificanceLevel, CorrVarOrder = CorrVarOrder, TimeseriesMaxLag = TimeseriesMaxLag,
+                           ExcludeTaperedAutocor = ExcludeTaperedAutocor, MaxTaperedRows = MaxTaperedRows,
+                           Verbose = Verbose
           )
 
         return(CurPerGroupDescrStats)
@@ -423,6 +430,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
     ####################
     #== Correlations ==#
     ####################
+    NewOrder <- NULL
     tryCatch({
       if (is.not.null(CorrVarOrder) & NCOL(CorDS) > 1 & NROW(CorDS) > 0) {
         if (CorrVarOrder == "AB") {
@@ -1032,6 +1040,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       } #DependentVar is What
     } #There actually is a Dependent Var (so we do Statistical Inference)
 
+
     ###################
     ### Time Series ###
     ###################
@@ -1067,7 +1076,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
 
           if ((is.not.null(DependentVar) && DependentVar %notin% NonNumericDSColNames) | (is.null(DependentVar) && is.not.null(BoxplotPointsColourVar))) {
             CurPlot <- CurPlot +
-              scale_colour_gradient(low = "#FF0000", high = "#0000FF") +
+              scale_colour_gradientn(colours = c("red", "green", "blue")) +
               theme_minimal()
           }
 
@@ -1086,7 +1095,12 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       }
 
 
+      #== Removing Groupping variable ==#
+      TimeseriesDS %<>% ungroup()
+      #=================================#
 
+
+      if (Verbose) cat(toString(now()), "Building AutoCorrelations Plots. TimeseriesMaxLag=", TimeseriesMaxLag, "\n")
       AutoCorrelationsPlots <-
         lapply(NumericDSColNames, function(NumVarName) {
           tryCatch({
@@ -1120,6 +1134,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       }
 
 
+      if (Verbose) cat(toString(now()), "Building Partial AutoCorrelations Plots. TimeseriesMaxLag=", TimeseriesMaxLag, "\n")
       PartialAutoCorrelationsPlots <-
         lapply(NumericDSColNames, function(NumVarName) {
           tryCatch({
@@ -1153,6 +1168,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       }
 
 
+      if (Verbose) cat(toString(now()), "Building AutoCovariance Plots. TimeseriesMaxLag=", TimeseriesMaxLag, "\n")
       AutoCovariancePlots <-
         lapply(NumericDSColNames, function(NumVarName) {
           tryCatch({
@@ -1198,84 +1214,90 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       }
 
 
-      #The tapered versions implement the ACF and PACF estimates and plots described in Hyndman (2015), based on the banded and tapered estimates of autocovariance proposed by McMurry and Politis (2010).
-      TaperedAutoCorrelationsPlots <-
-        lapply(NumericDSColNames, function(NumVarName) {
-          tryCatch({
-            CurTapAutoCorPlot <- forecast::ggtaperedacf(
-              TimeseriesDS %>% pull(NumVarName),
-              lag.max = TimeseriesMaxLag,
-              type = c("correlation"),
-              plot = TRUE,
-              calc.ci = TRUE,
-              level = 95,
-              nsim = 100
-            )
-            #Unfortunately its '$data' doesn't contain the data so we can't check for NROW==0
-            #This might lead to errors not captured by the tryCatch and spiral into errors of saving or even not finishing running this function
-            # if ((CurTapAutoCorPlot$data %>% NROW()) == 0) {
-            #   stop("Probably not enough data to plot")
-            # }
-            CurTapAutoCorPlot <- CurTapAutoCorPlot + ggtitle(paste0("Tapered Autocorrelation: ", NumVarName))
-            return(CurTapAutoCorPlot)
+      if (!ExcludeTaperedAutocor) {
+        if (NROW(TimeseriesDS) > MaxTaperedRows) message(paste0("Tapered Partial and Autocorrelations will use the ", MaxTaperedRows, " last non-NA rows so that the code can run in a reasonable time"))
 
-          }, error = function(e) {
-            CurTapAutoCorPlot <- ggplot() + ggtitle(paste0(NumVarName, ": Probably not enough data to plot"), subtitle = e)
-            return(CurTapAutoCorPlot)
+        if (Verbose) cat(toString(now()), "Building Tapered AutoCorrelations Plots. TimeseriesMaxLag=", TimeseriesMaxLag, "\n")
+        #The tapered versions implement the ACF and PACF estimates and plots described in Hyndman (2015), based on the banded and tapered estimates of autocovariance proposed by McMurry and Politis (2010).
+        TaperedAutoCorrelationsPlots <-
+          lapply(NumericDSColNames, function(NumVarName) {
+            tryCatch({
+              CurTapAutoCorPlot <- forecast::ggtaperedacf(
+                TimeseriesDS %>% select(NumVarName) %>% drop_na() %>% slice_tail(n = MaxTaperedRows) %>% pull(NumVarName),
+                lag.max = TimeseriesMaxLag,
+                type = c("correlation"),
+                plot = TRUE,
+                calc.ci = NROW(TimeseriesDS) <= 1000,
+                level = (1-SignificanceLevel)*100,
+                nsim = ifelse(NROW(TimeseriesDS) <= 500, 100, 100)
+              )
+              #Unfortunately its '$data' doesn't contain the data so we can't check for NROW==0
+              #This might lead to errors not captured by the tryCatch and spiral into errors of saving or even not finishing running this function
+              # if ((CurTapAutoCorPlot$data %>% NROW()) == 0) {
+              #   stop("Probably not enough data to plot")
+              # }
+              CurTapAutoCorPlot <- CurTapAutoCorPlot + ggtitle(paste0("Tapered Autocorrelation: ", NumVarName))
+              return(CurTapAutoCorPlot)
+
+            }, error = function(e) {
+              CurTapAutoCorPlot <- ggplot() + ggtitle(paste0(NumVarName, ": Probably not enough data to plot"), subtitle = e)
+              return(CurTapAutoCorPlot)
+            })
           })
-        })
 
-      names(TaperedAutoCorrelationsPlots) <- NumericDSColNames
+        names(TaperedAutoCorrelationsPlots) <- NumericDSColNames
 
-      if (ShowGraphs) {
-        grid.arrange(grobs = lapply(NumericDSColNames, function(VarName) {
-          ggplotGrob(TaperedAutoCorrelationsPlots[[VarName]])
-        }),
-        nrow = round(sqrt(NROW(NumericDSColNames))))
-      }
+        if (ShowGraphs) {
+          grid.arrange(grobs = lapply(NumericDSColNames, function(VarName) {
+            ggplotGrob(TaperedAutoCorrelationsPlots[[VarName]])
+          }),
+          nrow = round(sqrt(NROW(NumericDSColNames))))
+        }
 
 
-      #The tapered versions implement the ACF and PACF estimates and plots described in Hyndman (2015), based on the banded and tapered estimates of autocovariance proposed by McMurry and Politis (2010).
-      TaperedPartialAutoCorrelationsPlots <-
-        lapply(NumericDSColNames, function(NumVarName) {
-          tryCatch({
-            CurTapPAutoCorPlot <- forecast::ggtaperedacf(
-              TimeseriesDS %>% pull(NumVarName),
-              lag.max = TimeseriesMaxLag,
-              type = c("partial"),
-              plot = TRUE,
-              calc.ci = TRUE,
-              level = 95,
-              nsim = 100
-            )
-            #Unfortunately its '$data' doesn't contain the data so we can't check for NROW==0
-            #This might lead to errors not captured by the tryCatch and spiral into errors of saving or even not finishing running this function
-            # if ((CurTapPAutoCorPlot$data %>% NROW()) == 0) {
-            #   stop("Probably not enough data to plot")
-            # }
-            CurTapPAutoCorPlot <- CurTapPAutoCorPlot + ggtitle(paste0("Tapered Autocovariance: ", NumVarName))
-            return(CurTapPAutoCorPlot)
+        if (Verbose) cat(toString(now()), "Building Tapered Partial AutoCorrelations Plots\n")
+        #The tapered versions implement the ACF and PACF estimates and plots described in Hyndman (2015), based on the banded and tapered estimates of autocovariance proposed by McMurry and Politis (2010).
+        TaperedPartialAutoCorrelationsPlots <-
+          lapply(NumericDSColNames, function(NumVarName) {
+            tryCatch({
+              CurTapPAutoCorPlot <- forecast::ggtaperedacf(
+                TimeseriesDS %>% select(NumVarName) %>% drop_na() %>% slice_tail(n = MaxTaperedRows) %>% pull(NumVarName),
+                lag.max = TimeseriesMaxLag,
+                type = c("partial"),
+                plot = TRUE,
+                calc.ci = NROW(TimeseriesDS) <= 1000,
+                level = (1-SignificanceLevel)*100,
+                nsim = ifelse(NROW(TimeseriesDS) <= 500, 100, 100)
+              )
+              #Unfortunately its '$data' doesn't contain the data so we can't check for NROW==0
+              #This might lead to errors not captured by the tryCatch and spiral into errors of saving or even not finishing running this function
+              # if ((CurTapPAutoCorPlot$data %>% NROW()) == 0) {
+              #   stop("Probably not enough data to plot")
+              # }
+              CurTapPAutoCorPlot <- CurTapPAutoCorPlot + ggtitle(paste0("Tapered Autocovariance: ", NumVarName))
+              return(CurTapPAutoCorPlot)
 
-          }, error = function(e) {
-            CurTapPAutoCorPlot <- ggplot() + ggtitle(paste0(NumVarName, ": Probably not enough data to plot"), subtitle = e)
-            return(CurTapPAutoCorPlot)
+            }, error = function(e) {
+              CurTapPAutoCorPlot <- ggplot() + ggtitle(paste0(NumVarName, ": Probably not enough data to plot"), subtitle = e)
+              return(CurTapPAutoCorPlot)
+            })
           })
-        })
 
-      names(TaperedPartialAutoCorrelationsPlots) <- NumericDSColNames
+        names(TaperedPartialAutoCorrelationsPlots) <- NumericDSColNames
 
-      if (ShowGraphs) {
-        grid.arrange(grobs = lapply(NumericDSColNames, function(VarName) {
-          ggplotGrob(TaperedPartialAutoCorrelationsPlots[[VarName]])
-        }),
-        nrow = round(sqrt(NROW(NumericDSColNames))))
+        if (ShowGraphs) {
+          grid.arrange(grobs = lapply(NumericDSColNames, function(VarName) {
+            ggplotGrob(TaperedPartialAutoCorrelationsPlots[[VarName]])
+          }),
+          nrow = round(sqrt(NROW(NumericDSColNames))))
+        }
       }
-
 
       #== Crosscorrelations for Versus Numerical Dependent ==#
       CrossCorrelationPlots <- NULL
       CrossCovariancePlots <- NULL
       if (is.not.null(DependentVar) && NROW(NumericDSColNames) > 0 && DependentVar %in% NumericDSColNames) {
+        if (Verbose) cat(toString(now()), "Building Cross-Correlation Plots\n")
 
           CrossCorrelationPlots <-
             lapply(StatInferNumGraphsColNames, function(NumVarName) {
@@ -1310,6 +1332,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
           }
 
 
+          if (Verbose) cat(toString(now()), "Building Cross-Covariance Plots\n")
           CrossCovariancePlots <-
             lapply(StatInferNumGraphsColNames, function(NumVarName) {
               tryCatch({

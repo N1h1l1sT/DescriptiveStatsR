@@ -175,122 +175,29 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
     names(PerGroupDescrStats) <- GroupByGroups %>% as.character()
   }
 
-  ######################
-  #Continuous Variables#
-  ######################
-  NumericDS <-
-    VarDF %>%
-    dplyr::select_if(function(Var) is.logical(Var) | (IncludeInteger & is.numeric(Var)) | (is.numeric(Var) & !IncludeInteger & !is.integer(Var)) | (is.factor(Var) & is.ordered(Var)) | (
-      (is.Date(Var) | is.POSIXct(Var) | is.POSIXlt(Var) | is.POSIXt(Var)) & (DatesToNowMinusDate | DatesToCyclicMonth | DatesToCyclicDayOfWeek | DatesToCyclicDayOfMonth | DatesToCyclicDayOfYear)
-      )) %>%
-    mutate_if(function(x) is.factor(x) | is.logical(x), as.numeric) %>% #It's already ordered because of select_if()
-    mutate_if(function(x) DatesToCyclicMonth & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
-      list(
-        SinMon = function(x) {
-          tmp = lubridate::as_date(x)
-          sin(2 * pi * lubridate::month(tmp) / 12)
-        },
-        CosMon = function(x) {
-          tmp = lubridate::as_date(x)
-          cos(2 * pi * lubridate::month(tmp) / 12)
-        }
-      )
-    ) %>%
-    mutate_if(function(x) DatesToCyclicDayOfWeek & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
-      list(
-        SinDOW = function(x) {
-          tmp = lubridate::as_date(x)
-          sin(2 * pi * lubridate::wday(tmp) / 7)
-        },
-        CosDOW = function(x) {
-          tmp = lubridate::as_date(x)
-          cos(2 * pi * lubridate::wday(tmp) / 7)
-        }
-      )
-    ) %>%
-    mutate_if(function(x) DatesToCyclicDayOfMonth & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
-      list(
-        SinDOM = function(x) {
-          tmp = lubridate::as_date(x)
-          sin(2 * pi * lubridate::mday(tmp) / as.numeric(lubridate::days_in_month(tmp)))
-        },
-        CosDOM = function(x) {
-          tmp = lubridate::as_date(x)
-          cos(2 * pi * lubridate::mday(tmp) / as.numeric(lubridate::days_in_month(tmp)))
-        }
-      )
-    ) %>%
-    mutate_if(function(x) DatesToCyclicDayOfYear & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
-              list(
-                SinDOY = function(x) {
-                  tmp = lubridate::as_date(x)
-                  sin(2 * pi * lubridate::year(tmp) / 365)
-                },
-                CosDOY = function(x) {
-                  tmp = lubridate::as_date(x)
-                  cos(2 * pi * lubridate::year(tmp) / 365)
-                }
-              )
-    ) %>%
-    mutate_if(function(x) DatesToNowMinusDate & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)), function(y) time_length(lubridate::now(tzone = "UTC") - as_datetime(y), unit = "second"))
-
-  NumericDSColNames <-
-    NumericDS %>%
-    names()
-
-  NumericDescriptives <-
-    NumericDSColNames %>% sapply(function(NumVar) c(Min      =  NumericDS[[NumVar]] %>% min(na.rm = TRUE)                              %>% round(RoundAt),
-                                                    Q1       = (NumericDS[[NumVar]] %>% quantile(probs = 0.25, na.rm = TRUE))[[1]]     %>% round(RoundAt),
-                                                    Mean     =  NumericDS[[NumVar]] %>% mean(na.rm = TRUE)                             %>% round(RoundAt),
-                                                    Median   =  NumericDS[[NumVar]] %>% median(na.rm = TRUE)                           %>% round(RoundAt),
-                                                    Q3       = (NumericDS[[NumVar]] %>% quantile(probs = 0.75, na.rm = TRUE))[[1]]     %>% round(RoundAt),
-                                                    Max      =  NumericDS[[NumVar]] %>% max(na.rm = TRUE)                              %>% round(RoundAt),
-                                                    SD       =  NumericDS[[NumVar]] %>% sd(na.rm = TRUE) %>% {ifelse(is.na(.), 0, .)}  %>% round(RoundAt),
-                                                    IQR      =  NumericDS[[NumVar]] %>% IQR(na.rm = TRUE)                              %>% round(RoundAt),
-                                                    Kurtosis =  NumericDS[[NumVar]] %>% e1071::kurtosis(na.rm = TRUE)                  %>% round(RoundAt),
-                                                    Skewness =  NumericDS[[NumVar]] %>% e1071::skewness(na.rm = TRUE)                  %>% round(RoundAt),
-                                                    Obs      =  NumericDS[[NumVar]] %>% is.not.na() %>% sum(),
-                                                    NAs      =  NumericDS[[NumVar]] %>% is.na() %>% sum(),
-                                                    NAsRatio = (NumericDS[[NumVar]] %>% is.na() %>% sum() / NROW(NumericDS[[NumVar]])) %>% round(RoundAt)
-    )
-    ) %>%
-    data.frame() %>%
-    Transpose_DF %>% {
-      if (NROW(.) > 0 | NCOL(.) > 0) (.) %>% rename(Name = rowname) else (.) %>% as_tibble()
-    } %>%
-    mutate(Present = ((1-NAsRatio) * 100) %>% sapply(function(x) paste0(implode(rep(" ", 3 - nchar(round(x,1)))), x, "%")))
-
-
-  NumericColsToDrop <- NumericDSColNames[NumericDescriptives$SD == 0]
-  NumericDSColNames <- NumericDSColNames[NumericDescriptives$SD > 0] %>% na.omit() %>% as.vector() #There's no reason to waste time and CPU to plot data with 0 Variation
-  NumericDS %<>% select(all_of(NumericDSColNames))
-
   #######################
   #Categorical / Ordinal#
   #######################
+  VarDF %<>%
+    mutate_if(function(x) DatesToYearCat & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+              list(Year = function(x) lubridate::year(x) %>% as.factor() %>% factor(levels = sort(levels(.)), labels = sort(levels(.)), ordered = TRUE))
+    ) %>%
+    mutate_if(function(x) DatesToMonthCat & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+              list(Month = function(x) lubridate::month(x) %>% as.factor() %>% factor(levels = sort(levels(.)), labels = sort(levels(.)), ordered = TRUE))
+    ) %>%
+    mutate_if(function(x) DatesToDayOfYearCat & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+              list(DOY = function(x) lubridate::yday(x) %>% as.factor() %>% factor(levels = sort(levels(.)), labels = sort(levels(.)), ordered = TRUE))
+    ) %>%
+    mutate_if(function(x) DatesToDayOfWeekCat & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+              list(DOW = function(x) lubridate::wday(x) %>% as.factor() %>% factor(levels = sort(levels(.)), labels = sort(levels(.)), ordered = TRUE))
+    ) %>%
+    mutate_if(function(x) DatesToDayOfMonthCat & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+              list(DOM = function(x) lubridate::mday(x) %>% as.factor() %>% factor(levels = sort(levels(.)), labels = sort(levels(.)), ordered = TRUE))
+    )
+
   NonNumericDS <-
     VarDF %>%
-    dplyr::select_if(function(Var) (!is.numeric(Var) & !is.Date(Var) & !is.POSIXct(Var) & !is.POSIXlt(Var) & !is.POSIXt(Var))) %>%
-    mutate_if(function(x) !is.factor(x), as.factor) %>%
-    add_column(
-      VarDF %>%
-        dplyr::select_if(function(Var) (is.Date(Var) | is.POSIXct(Var) | is.POSIXlt(Var) | is.POSIXt(Var)) & (DatesToYearCat | DatesToMonthCat | DatesToDayOfYearCat | DatesToDayOfWeekCat | DatesToDayOfMonthCat)) %>%
-        mutate_if(function(x) DatesToYearCat & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
-                  list(Year = function(x) lubridate::year(x) %>% as.factor() %>% factor(levels = levels(.), labels = sort(levels(.)), ordered = TRUE))
-        ) %>%
-        mutate_if(function(x) DatesToMonthCat & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
-                  list(Month = function(x) lubridate::month(x) %>% as.factor() %>% factor(levels = levels(.), labels = sort(levels(.)), ordered = TRUE))
-        ) %>%
-        mutate_if(function(x) DatesToDayOfYearCat & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
-                  list(DOY = function(x) lubridate::yday(x) %>% as.factor() %>% factor(levels = levels(.), labels = sort(levels(.)), ordered = TRUE))
-        ) %>%
-        mutate_if(function(x) DatesToDayOfWeekCat & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
-                  list(DOW = function(x) lubridate::wday(x) %>% as.factor() %>% factor(levels = levels(.), labels = sort(levels(.)), ordered = TRUE))
-        ) %>%
-        mutate_if(function(x) DatesToDayOfMonthCat & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
-                  list(DOM = function(x) lubridate::mday(x) %>% as.factor() %>% factor(levels = levels(.), labels = sort(levels(.)), ordered = TRUE))
-        ) %>% select_if(is.factor)
-    )
+    dplyr::select_if(function(Var) (!is.numeric(Var) & !is.Date(Var) & !is.POSIXct(Var) & !is.POSIXlt(Var) & !is.POSIXt(Var)))
 
   NonNumericDSColNames <-
     NonNumericDS %>%
@@ -362,6 +269,102 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
     NonNumericDSColNames <- NULL
   }
 
+
+  ######################
+  #Continuous Variables#
+  ######################
+  VarDF %<>%
+    mutate_if(function(x) DatesToCyclicMonth & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+              list(
+                SinMon = function(x) {
+                  tmp = lubridate::as_date(x)
+                  sin(2 * pi * lubridate::month(tmp) / 12)
+                },
+                CosMon = function(x) {
+                  tmp = lubridate::as_date(x)
+                  cos(2 * pi * lubridate::month(tmp) / 12)
+                }
+              )
+    ) %>%
+    mutate_if(function(x) DatesToCyclicDayOfWeek & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+              list(
+                SinDOW = function(x) {
+                  tmp = lubridate::as_date(x)
+                  sin(2 * pi * lubridate::wday(tmp) / 7)
+                },
+                CosDOW = function(x) {
+                  tmp = lubridate::as_date(x)
+                  cos(2 * pi * lubridate::wday(tmp) / 7)
+                }
+              )
+    ) %>%
+    mutate_if(function(x) DatesToCyclicDayOfMonth & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+              list(
+                SinDOM = function(x) {
+                  tmp = lubridate::as_date(x)
+                  sin(2 * pi * lubridate::mday(tmp) / as.numeric(lubridate::days_in_month(tmp)))
+                },
+                CosDOM = function(x) {
+                  tmp = lubridate::as_date(x)
+                  cos(2 * pi * lubridate::mday(tmp) / as.numeric(lubridate::days_in_month(tmp)))
+                }
+              )
+    ) %>%
+    mutate_if(function(x) DatesToCyclicDayOfYear & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)),
+              list(
+                SinDOY = function(x) {
+                  tmp = lubridate::as_date(x)
+                  sin(2 * pi * lubridate::year(tmp) / 365)
+                },
+                CosDOY = function(x) {
+                  tmp = lubridate::as_date(x)
+                  cos(2 * pi * lubridate::year(tmp) / 365)
+                }
+              )
+    ) %>%
+    mutate_if(function(x) DatesToNowMinusDate & (is.Date(x) | is.POSIXct(x) | is.POSIXlt(x) | is.POSIXt(x)), function(y) time_length(lubridate::now(tzone = "UTC") - as_datetime(y), unit = "second")) # TODO Names of dates should be renamed to like TimeFrom{DateVarName}
+
+
+  NumericDS <-
+    VarDF %>%
+    dplyr::select_if(function(Var) is.logical(Var) | (IncludeInteger & is.numeric(Var)) | (is.numeric(Var) & !IncludeInteger & !is.integer(Var)) | (is.factor(Var) & is.ordered(Var)) | (
+      FALSE #(is.Date(Var) | is.POSIXct(Var) | is.POSIXlt(Var) | is.POSIXt(Var)) & (DatesToNowMinusDate | DatesToCyclicMonth | DatesToCyclicDayOfWeek | DatesToCyclicDayOfMonth | DatesToCyclicDayOfYear)
+      )) %>%
+    select_if(function(Var) !is.Date(Var) & !is.POSIXct(Var) & !is.POSIXlt(Var) & !is.POSIXt(Var)) %>%
+    mutate_if(function(x) is.factor(x) | is.logical(x), as.numeric) #It's already ordered because of select_if()
+
+  NumericDSColNames <-
+    NumericDS %>%
+    names()
+
+  NumericDescriptives <-
+    NumericDSColNames %>% sapply(function(NumVar) c(Min      =  NumericDS[[NumVar]] %>% min(na.rm = TRUE)                              %>% round(RoundAt),
+                                                    Q1       = (NumericDS[[NumVar]] %>% quantile(probs = 0.25, na.rm = TRUE))[[1]]     %>% round(RoundAt),
+                                                    Mean     =  NumericDS[[NumVar]] %>% mean(na.rm = TRUE)                             %>% round(RoundAt),
+                                                    Median   =  NumericDS[[NumVar]] %>% median(na.rm = TRUE)                           %>% round(RoundAt),
+                                                    Q3       = (NumericDS[[NumVar]] %>% quantile(probs = 0.75, na.rm = TRUE))[[1]]     %>% round(RoundAt),
+                                                    Max      =  NumericDS[[NumVar]] %>% max(na.rm = TRUE)                              %>% round(RoundAt),
+                                                    SD       =  NumericDS[[NumVar]] %>% sd(na.rm = TRUE) %>% {ifelse(is.na(.), 0, .)}  %>% round(RoundAt),
+                                                    IQR      =  NumericDS[[NumVar]] %>% IQR(na.rm = TRUE)                              %>% round(RoundAt),
+                                                    Kurtosis =  NumericDS[[NumVar]] %>% e1071::kurtosis(na.rm = TRUE)                  %>% round(RoundAt),
+                                                    Skewness =  NumericDS[[NumVar]] %>% e1071::skewness(na.rm = TRUE)                  %>% round(RoundAt),
+                                                    Obs      =  NumericDS[[NumVar]] %>% is.not.na() %>% sum(),
+                                                    NAs      =  NumericDS[[NumVar]] %>% is.na() %>% sum(),
+                                                    NAsRatio = (NumericDS[[NumVar]] %>% is.na() %>% sum() / NROW(NumericDS[[NumVar]])) %>% round(RoundAt)
+    )
+    ) %>%
+    data.frame() %>%
+    Transpose_DF %>% {
+      if (NROW(.) > 0 | NCOL(.) > 0) (.) %>% rename(Name = rowname) else (.) %>% as_tibble()
+    } %>%
+    mutate(Present = ((1-NAsRatio) * 100) %>% sapply(function(x) paste0(implode(rep(" ", 3 - nchar(round(x,1)))), x, "%")))
+
+
+  NumericColsToDrop <- NumericDSColNames[NumericDescriptives$SD == 0]
+  NumericDSColNames <- NumericDSColNames[NumericDescriptives$SD > 0] %>% na.omit() %>% as.vector() #There's no reason to waste time and CPU to plot data with 0 Variation
+  NumericDS %<>% select(all_of(NumericDSColNames))
+
+
   if (!NoPrints) {
     if (NROW(NumericDSColNames) > 0) {
       cat("Continuous Variables:\n")
@@ -373,6 +376,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       print(CategoricalDescriptives)
     }
   }
+
 
   if (NROW(NumericColsToDrop) > 0) cat("\n[", NROW(NumericColsToDrop), "] Numeric columns were dropped because there was 0 Variation: ", implode(NumericColsToDrop, sep = ", "), "\n\n")
   if (NROW(NonNumericColsToDrop) > 0) cat("[", NROW(NonNumericColsToDrop), "] Categorical columns were dropped because there was 0 Variation: ", implode(NonNumericColsToDrop, sep = ","), "\n\n")
@@ -437,7 +441,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
           NewOrder <- (CorDS %>% names %>% sort(index.return = TRUE))$ix
         } else {
           NewOrder <- (CorDS %>% {
-            if (is.not.null(GroupBy)) (.) %>% group_by(VarDF %>% pull(!!sym(GroupBy))) else (.)
+            if (is.not.null(GroupBy)) (.) %>% group_by(VarDF[FilteredIndx, ] %>% pull(!!sym(GroupBy))) else (.)
           } %>%
             {
               if (IsTimeSeries) {
@@ -743,7 +747,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
     #For per group 'AllBoxplotsOn1Page = FALSE' always
     if (is.not.null(GroupBy)) {
       for (NumVarName in NumericDSColNames) {
-        NumericDS_Melted <- #Is this just VarDF[c(GroupBy, NumVarName)] %>% rename(variable = GroupBy, value = NumVarName)?? TODO!
+        NumericDS_Melted <- #Is this just VarDF[c(GroupBy, NumVarName)] %>% rename(variable = GroupBy, value = NumVarName)?? TODO! Also [FilteredIndx,] on VarDF?
           bind_rows(
             lapply(GroupByGroups, function(CurGroup) {
               tibble(
@@ -766,24 +770,24 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
     ##############################
     ### Categorical: Bar Chart ###
     ##############################
-    if (NROW(NonNumericDSColNames) > 0) {
+    if (NROW(NonNumericDSColNames %>% setdiff(c("DOY", "DOM"))) > 0) {
       if (Verbose) cat(toString(now()), "Building Barcharts\n")
       BarChartGraphs <-
-        lapply(NonNumericDSColNames, function(CatVarName) {
+        lapply(NonNumericDSColNames %>% setdiff(c("DOY", "DOM")), function(CatVarName) { #DOY and DOM have TOO many levels for plotting
           ggplot(data = NonNumericDS) +
             aes(x = !!sym(CatVarName)) +
             geom_bar(aes(fill = !!sym(CatVarName))) +
             geom_text(stat = 'count', aes(label = ..count..), vjust = -.25) #+ #Always shows 100%
             # geom_text(stat = "count", aes(label = scales::percent(..prop..), y = ..prop..), vjust = +.75)
         })
-      names(BarChartGraphs) <- NonNumericDSColNames
+      names(BarChartGraphs) <- NonNumericDSColNames %>% setdiff(c("DOY", "DOM"))
 
       if(ShowGraphs) {
         if(AllBarChartsOn1Page) {
-          grid.arrange(grobs = lapply(NonNumericDSColNames, function(CatVarName) {
+          grid.arrange(grobs = lapply(NonNumericDSColNames %>% setdiff(c("DOY", "DOM")), function(CatVarName) {
             ggplotGrob(BarChartGraphs[[CatVarName]])
           }),
-          nrow = round(sqrt(NROW(NonNumericDSColNames))))
+          nrow = round(sqrt(NROW(NonNumericDSColNames %>% setdiff(c("DOY", "DOM"))))))
         } else {
           print(BarChartGraphs)
         }
@@ -792,11 +796,11 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       #===============#
       #== Per Group ==#
       #===============#
-      if (is.not.null(GroupBy) & NROW(NonNumericDSColNames) > 1) { #We need +1 because the GroupBy variable is going to dissapear
+      if (is.not.null(GroupBy) & NROW(NonNumericDSColNames %>% setdiff(c("DOY", "DOM"))) > 1) { #We need +1 because the GroupBy variable is going to dissapear
         BarChartGraphsPerGroup <-
-          lapply(NonNumericDSColNames %>% setdiff(GroupBy), function(CatVarName) {
+          lapply(NonNumericDSColNames %>% setdiff(c("DOY", "DOM")) %>% setdiff(GroupBy), function(CatVarName) {
 
-            CurDS <- #TODO! This dataset is just VarDF %>% select(CatVarName, CurGroup)
+            CurDS <- #TODO! This dataset is just VarDF %>% select(CatVarName, CurGroup) #Also [FilteredIndx,] on VarDF?
               bind_rows(
                 lapply(GroupByGroups, function(CurGroup) {
                   tibble(
@@ -811,7 +815,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
               geom_bar(aes(fill = !!sym(GroupBy)))
 
           })
-        names(BarChartGraphsPerGroup) <- NonNumericDSColNames %>% setdiff(GroupBy)
+        names(BarChartGraphsPerGroup) <- NonNumericDSColNames %>% setdiff(c("DOY", "DOM")) %>% setdiff(GroupBy)
       }
     }
 

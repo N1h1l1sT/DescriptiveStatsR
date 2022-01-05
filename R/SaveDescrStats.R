@@ -187,22 +187,19 @@ SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, Num
     })
   }
   if (NROW(DescriptiveStatsVar$BoxplotGraphsPerGroup) > 0) {
-    PerGroupNames <- names(DescriptiveStatsVar$BoxplotGraphsPerGroup)
-    for (CurName in PerGroupNames) {
-      try(dir.create(file.path(path_stats, "Boxplot Graphs Per Group"), showWarnings = FALSE))
-      tryCatch({
-        png(paste0(path_stats, "Boxplot Graphs Per Group/", CurName, ".png"), width = NumWidth, height = NumHeight, units = "px")
-        print(DescriptiveStatsVar$BoxplotGraphsPerGroup[[CurName]])
-      }, warning = function(w) {
-        cat("Warning:\n")
-        print(w)
-      }, error = function(e) {
-        cat("Error:\n")
-        print(e)
-      }, finally = {
-        try(dev.off(), silent = TRUE)
-      })
-    }
+    tryCatch({
+      png(paste0(path_stats, "Numerical Boxplots per group.png"), width = NumWidth, height = NumHeight, units = "px")
+      suppressWarnings(
+        grid.arrange(grobs = lapply(names(DescriptiveStatsVar$BoxplotGraphsPerGroup), function(x) {
+          ggplotGrob(DescriptiveStatsVar$BoxplotGraphsPerGroup[[x]])
+        }),
+        nrow = round(sqrt(NROW(names(DescriptiveStatsVar$BoxplotGraphsPerGroup)))))
+      )
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
   }
 
   ### Bar Charts for Categorical Variables
@@ -222,22 +219,19 @@ SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, Num
     })
   }
   if (NROW(DescriptiveStatsVar$BarChartGraphsPerGroup) > 0) {
-    PerGroupNames <- names(DescriptiveStatsVar$BarChartGraphsPerGroup)
-    for (CurName in PerGroupNames) {
-      try(dir.create(file.path(path_stats, "Categorical Distributions Per Group"), showWarnings = FALSE))
-      tryCatch({
-        png(paste0(path_stats, "Categorical Distributions Per Group/", CurName, ".png"), width = CatWidth, height = CatHeight, units = "px")
-        print(DescriptiveStatsVar$BarChartGraphsPerGroup[[CurName]])
-      }, warning = function(w) {
-        cat("Warning:\n")
-        print(w)
-      }, error = function(e) {
-        cat("Error:\n")
-        print(e)
-      }, finally = {
-        try(dev.off(), silent = TRUE)
-      })
-    }
+    tryCatch({
+      png(paste0(path_stats, "Categorical Distributions per group.png"), width = CatWidth, height = CatHeight, units = "px")
+      suppressWarnings(
+        grid.arrange(grobs = lapply(names(DescriptiveStatsVar$BarChartGraphsPerGroup), function(x) {
+          ggplotGrob(DescriptiveStatsVar$BarChartGraphsPerGroup[[x]])
+        }),
+        nrow = round(sqrt(NROW(names(DescriptiveStatsVar$BarChartGraphsPerGroup)))))
+      )
+    }, warning = function(w) {
+    }, error = function(e) {
+    }, finally = {
+      try(dev.off(), silent = TRUE)
+    })
   }
 
   if (NROW(DescriptiveStatsVar$NumericVSDependentGraphs) > 0) {

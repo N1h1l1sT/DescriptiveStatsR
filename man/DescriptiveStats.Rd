@@ -132,7 +132,7 @@ DescriptiveStats(
 
 \item{DateBreaks}{String. ggplot2 date_breaks parameter. Default is "1 month"}
 
-\item{DateLabels}{String. ggplot2 date_labels parameter. Default is "%y %m"}
+\item{DateLabels}{String. ggplot2 date_labels parameter. Default is year (short) followed by month}
 
 \item{DateTextAngle}{Integer. ggplot2 theme angle for the date values in X axis}
 

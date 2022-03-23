@@ -70,12 +70,12 @@
 #' @param DatesToMinuteCat Boolean. If TRUE then Dates are transformed into categorical variables containing the Minute of the date
 #' @param ExcludeTaperedAutocor Boolean. Only counts if IsTimeSeries==TRUE. If TRUE then the TaperedAutocorrelation and TaperedPartialAutocorrelation will not be computed
 #' @param MaxTaperedRows Integer. Probably a good idea to not increase it as the time it takes is excessive then
-#' @param Verbose Numeric. If there are many columns, calculations can take a long time so we might wanna know when each part finishes and perhaps disable some parts
 #' @param VarsToExcludeFromTimeseries String Array. The names of the variables which we don't want to include in Time-series analysis (if any)
 #' @param ExludeCovariances Boolean. If TRUE, Cross-Covariance and Auto-Covariance will not be calculated
 #' @param DateBreaks String. ggplot2 date_breaks parameter. Default is "1 month"
-#' @param DateLabels String. ggplot2 date_labels parameter. Default is "%y %m"
+#' @param DateLabels String. ggplot2 date_labels parameter. Default is year (short) followed by month
 #' @param DateTextAngle Integer. ggplot2 theme angle for the date values in X axis
+#' @param Verbose Numeric. If there are many columns, calculations can take a long time so we might wanna know when each part finishes and perhaps disable some parts
 #' @keywords Descriptive Statistics DescriptiveStats DescrStats
 #' @export
 #' @examples

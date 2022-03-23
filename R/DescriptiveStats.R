@@ -1119,7 +1119,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       TimeProgressionPlots <-
         lapply(NumericDSColNames %>% setdiff(ExcludeFromTimeseries), function(NumVarName) {
           CurPlot <- ggplot(data = TimeseriesDS %>%
-                                    select(one_of(c(TimeFlowVarName, NumVarName, DependentVar, BoxplotPointsColourVar, "Grp"))) %>%
+                                    select(one_of(c(TimeFlowVarName, NumVarName, DependentVar, paste0(DependentVar, "."), BoxplotPointsColourVar, "Grp"))) %>%
                                     {
                                       if (is.not.null(DateBreaks)) {
                                         . %<>% mutate(!!sym(TimeFlowVarName) := as.Date(!!sym(TimeFlowVarName)))

@@ -41,4 +41,4 @@ Depends:
 	ggplot2 (>= 3.2.1),
 	e1071 (>= 1.7.4),
 	forecast
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2

@@ -41,6 +41,13 @@ DescriptiveStats(
   DatesToDayOfYearCat = FALSE,
   DatesToHourCat = FALSE,
   DatesToMinuteCat = FALSE,
+  ExcludeTaperedAutocor = FALSE,
+  MaxTaperedRows = 250,
+  VarsToExcludeFromTimeseries = NULL,
+  ExludeCovariances = TRUE,
+  DateBreaks = "1 month",
+  DateLabels = "\%y \%m",
+  DateTextAngle = 0,
   Verbose = NULL
 )
 }
@@ -89,7 +96,7 @@ DescriptiveStats(
 
 \item{CorrVarOrder}{String. AB - Alphabetical, hclust - Order based on Hierarchical cluster analysis, BEA - Bond Energy Algorithm to maximize the measure of effectiveness (ME), PCA - First principal component or angle on the projection on the first two principal components, TSP - Travelling sales person solver to maximize ME}
 
-\item{TimeseriesMaxLag}{Boolean. Max lag for Auto Correlation/Covariance plots.}
+\item{TimeseriesMaxLag}{Integer. Max lag for Auto Correlation/Covariance plots.}
 
 \item{DatesToNowMinusDate}{Boolean. If TRUE then Dates are transformed into integers reflecting how many seconds have passed since the time on the date}
 
@@ -114,6 +121,20 @@ DescriptiveStats(
 \item{DatesToHourCat}{Boolean. If TRUE then Dates are transformed into categorical variables containing the Hour of the date}
 
 \item{DatesToMinuteCat}{Boolean. If TRUE then Dates are transformed into categorical variables containing the Minute of the date}
+
+\item{ExcludeTaperedAutocor}{Boolean. Only counts if IsTimeSeries==TRUE. If TRUE then the TaperedAutocorrelation and TaperedPartialAutocorrelation will not be computed}
+
+\item{MaxTaperedRows}{Integer. Probably a good idea to not increase it as the time it takes is excessive then}
+
+\item{VarsToExcludeFromTimeseries}{String Array. The names of the variables which we don't want to include in Time-series analysis (if any)}
+
+\item{ExludeCovariances}{Boolean. If TRUE, Cross-Covariance and Auto-Covariance will not be calculated}
+
+\item{DateBreaks}{String. ggplot2 date_breaks parameter. Default is "1 month"}
+
+\item{DateLabels}{String. ggplot2 date_labels parameter. Default is "%y %m"}
+
+\item{DateTextAngle}{Integer. ggplot2 theme angle for the date values in X axis}
 
 \item{Verbose}{Numeric. If there are many columns, calculations can take a long time so we might wanna know when each part finishes and perhaps disable some parts}
 }

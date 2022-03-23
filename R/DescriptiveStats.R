@@ -1122,7 +1122,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
                                     select(one_of(c(TimeFlowVarName, NumVarName, DependentVar, BoxplotPointsColourVar, GroupBy))) %>%
                                     {
                                       if (is.not.null(DateBreaks)) {
-                                        . %<>% mutate(!!sym(TimeFlowVarName) = as.Date(!!sym(TimeFlowVarName)))
+                                        . %<>% mutate(!!sym(TimeFlowVarName) := as.Date(!!sym(TimeFlowVarName)))
                                       }
                                       .
                                     },

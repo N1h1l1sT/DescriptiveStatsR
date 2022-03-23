@@ -72,7 +72,10 @@
 #' @param MaxTaperedRows Integer. Probably a good idea to not increase it as the time it takes is excessive then
 #' @param Verbose Numeric. If there are many columns, calculations can take a long time so we might wanna know when each part finishes and perhaps disable some parts
 #' @param VarsToExcludeFromTimeseries String Array. The names of the variables which we don't want to include in Time-series analysis (if any)
-#' @param ExludeCovariances Boolean. If TRUE, Cross-Covariance and Auto-Covariance will not be calculated.
+#' @param ExludeCovariances Boolean. If TRUE, Cross-Covariance and Auto-Covariance will not be calculated
+#' @param DateBreaks String. ggplot2 date_breaks parameter. Default is "1 month"
+#' @param DateLabels String. ggplot2 date_labels parameter. Default is "%y %m"
+#' @param DateTextAngle Integer. ggplot2 theme angle for the date values in X axis
 #' @keywords Descriptive Statistics DescriptiveStats DescrStats
 #' @export
 #' @examples
@@ -94,7 +97,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
                              DatesToYearCat = FALSE, DatesToMonthCat = FALSE, DatesToDayCat = FALSE, DatesToDayOfWeekCat = FALSE, DatesToDayOfMonthCat = FALSE,
                              DatesToDayOfYearCat = FALSE, DatesToHourCat = FALSE, DatesToMinuteCat = FALSE,
                              ExcludeTaperedAutocor = FALSE, MaxTaperedRows = 250, VarsToExcludeFromTimeseries = NULL, ExludeCovariances = TRUE,
-                             Verbose = NULL) {
+                             DateBreaks = "1 month", DateLabels = "%y %m", DateTextAngle = 0, Verbose = NULL) {
   #VarDF <- tibble(a = runif(100), b = rnorm(100), c = rhyper(100, 50, 40, 20), d = if_else(runif(100) < 0.5, "Less", "More"), e = if_else(rnorm(100) < 0.5, "Low", "High"), f = 5)
 
   #TODO Scatterplot of Timeseries variables at t VS t-lag
@@ -179,6 +182,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
                            DatesToDayOfYearCat = DatesToDayOfYearCat, DatesToHourCat = DatesToHourCat, DatesToMinuteCat = DatesToMinuteCat,
                            ExcludeTaperedAutocor = ExcludeTaperedAutocor, MaxTaperedRows = MaxTaperedRows, VarsToExcludeFromTimeseries = VarsToExcludeFromTimeseries,
                              ExludeCovariances = ExludeCovariances,
+                           DateBreaks = DateBreaks, DateLabels = DateLabels, DateTextAngle = DateTextAngle,
                            Verbose = Verbose
           )
 
@@ -1124,6 +1128,12 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
           }
 
           if (is.not.null(GroupBy)) {CurPlot <- CurPlot + facet_grid(rows = vars(Grp)) + ylab(paste0(NumVarName, " (per ", GroupBy, ")"))}
+
+          if ("POSIXt" %in% class(TimeseriesDS$TimeFlow)) {
+            CurPlot <- CurPlot + scale_x_date(date_breaks = DateBreaks, date_labels = DateLabels)
+
+            if (DateTextAngle > 0) {CurPlot <- CurPlot + theme(axis.text.x=element_text(angle = DateTextAngle, hjust = 1))}
+          }
 
           return(CurPlot)
         })

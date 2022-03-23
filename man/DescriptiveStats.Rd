@@ -45,8 +45,8 @@ DescriptiveStats(
   MaxTaperedRows = 250,
   VarsToExcludeFromTimeseries = NULL,
   ExludeCovariances = TRUE,
-  DateBreaks = "1 month",
-  DateLabels = "\%y \%m",
+  DateBreaks = NULL,
+  DateLabels = NULL,
   DateTextAngle = 0,
   Verbose = NULL
 )
@@ -130,9 +130,9 @@ DescriptiveStats(
 
 \item{ExludeCovariances}{Boolean. If TRUE, Cross-Covariance and Auto-Covariance will not be calculated}
 
-\item{DateBreaks}{String. ggplot2 date_breaks parameter. Default is "1 month"}
+\item{DateBreaks}{String. ggplot2 date_breaks parameter. For example: "1 month"}
 
-\item{DateLabels}{String. ggplot2 date_labels parameter. Default is year (short) followed by month}
+\item{DateLabels}{String. ggplot2 date_labels parameter.}
 
 \item{DateTextAngle}{Integer. ggplot2 theme angle for the date values in X axis}
 

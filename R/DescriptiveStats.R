@@ -1,9 +1,11 @@
 #'
-#' Automatically Calculate a wide variety of Statistics for any Dataset (tibble). When called make sure to assign this function's output to a variable, i.e.: MyDFStats <- DescriptiveStats(MyDF, TRUE)
+#' Automatically Calculates Statistics on any Dataset.
+#'
+#' Automatically Calculates a wide variety of Statistics on any Dataset (tibble). When called, make sure to assign this function's output to a variable, i.e.: MyDFStats <- DescriptiveStats(MyDF, TRUE).
 #'
 #' DESCRIPTIVES:
 #' -Numerical Descriptives as a Matrix of Variables' Name, Min, Q1, Mean, Median, Q3, Max, St.Dev., IQR, Observations, NAs
-#' -Categorical Descriptives as a Matrix of Observations, NAs, Number of Unique values, and some of those values followed by their percentage of occurrance
+#' -Categorical Descriptives as a Matrix of Observations, NAs, Number of Unique values, and some of those values followed by their percentage of occurrence
 #' DESCRIPTIVE PLOTS:
 #' -Categorical Distributions as Bar charts
 #' -Numerical Distributions as Boxplots with dots overlaid to show actual concentration; dots' colour can optionally be used to display a 2nd numerical dimension (another variable)

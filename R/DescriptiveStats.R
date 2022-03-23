@@ -175,22 +175,22 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
         print(paste0("CurGroup: ", CurGroup))
         CurPerGroupDescrStats <-
           DescriptiveStats(VarDF = VarDF %>% filter(CurGroupFilterIndx[[CurGroup]]) %>% select(-c(!!sym(GroupBy))),
-                             CalculateGraphs = CalculateGraphs, IncludeInteger = IncludeInteger, RoundAt = RoundAt, AbbrevStrLevelsAfterNcount = AbbrevStrLevelsAfterNcount,
-                             AllHistsOn1Page = AllHistsOn1Page, AllBoxplotsOn1Page = AllBoxplotsOn1Page, AllBarChartsOn1Page = AllBarChartsOn1Page, DependentVar = DependentVar,
+                           CalculateGraphs = CalculateGraphs, IncludeInteger = IncludeInteger, RoundAt = RoundAt, AbbrevStrLevelsAfterNcount = AbbrevStrLevelsAfterNcount,
+                           AllHistsOn1Page = AllHistsOn1Page, AllBoxplotsOn1Page = AllBoxplotsOn1Page, AllBarChartsOn1Page = AllBarChartsOn1Page, DependentVar = DependentVar,
                            ShowGraphs = FALSE,
                            BoxplotPointsColourVar = if(is.not.null(BoxplotPointsColourVar)) BoxplotPointsColourVar[CurGroupFilterIndx[[CurGroup]]] %>% setNames(ColourVarName) else NULL,
                            NoPrints = TRUE,
-                             IsTimeSeries = IsTimeSeries,
+                           IsTimeSeries = IsTimeSeries,
                            GroupBy = NULL,
                            TimeFlowVar = if (is.null(TimeFlowVarName)) TimeFlowVar[CurGroupFilterIndx[[CurGroup]]] else TimeFlowVarName,
-                             BoxPlotPointSize = BoxPlotPointSize, BoxPlotPointAlpha = BoxPlotPointAlpha, SampleIfNRowGT = SampleIfNRowGT, SeedForSampling = SeedForSampling,
-                             CalcPValues = CalcPValues, SignificanceLevel = SignificanceLevel, CorrVarOrder = CorrVarOrder, TimeseriesMaxLag = TimeseriesMaxLag,DatesToNowMinusDate = FALSE,
+                           BoxPlotPointSize = BoxPlotPointSize, BoxPlotPointAlpha = BoxPlotPointAlpha, SampleIfNRowGT = SampleIfNRowGT, SeedForSampling = SeedForSampling,
+                           CalcPValues = CalcPValues, SignificanceLevel = SignificanceLevel, CorrVarOrder = CorrVarOrder, TimeseriesMaxLag = TimeseriesMaxLag,DatesToNowMinusDate = FALSE,
                            DatesToCyclicMonth = FALSE, DatesToCyclicDayOfWeek = FALSE, DatesToCyclicDayOfMonth = FALSE, DatesToCyclicDayOfYear = DatesToCyclicDayOfYear,
                            DatesToYearCat = DatesToYearCat, DatesToMonthCat = DatesToMonthCat, DatesToDayCat = DatesToDayCat, DatesToDayOfWeekCat = DatesToDayOfWeekCat,
-                             DatesToDayOfMonthCat = DatesToDayOfMonthCat,
+                           DatesToDayOfMonthCat = DatesToDayOfMonthCat,
                            DatesToDayOfYearCat = DatesToDayOfYearCat, DatesToHourCat = DatesToHourCat, DatesToMinuteCat = DatesToMinuteCat,
                            ExcludeTaperedAutocor = ExcludeTaperedAutocor, MaxTaperedRows = MaxTaperedRows, VarsToExcludeFromTimeseries = VarsToExcludeFromTimeseries,
-                             ExludeCovariances = ExludeCovariances,
+                           ExludeCovariances = ExludeCovariances,
                            DateBreaks = DateBreaks, DateLabels = DateLabels, DateTextAngle = DateTextAngle,
                            Verbose = Verbose
           )
@@ -354,7 +354,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
     VarDF %>%
     dplyr::select_if(function(Var) is.logical(Var) | (IncludeInteger & is.numeric(Var)) | (is.numeric(Var) & !IncludeInteger & !is.integer(Var)) | (is.factor(Var) & is.ordered(Var)) | (
       FALSE #(is.Date(Var) | is.POSIXct(Var) | is.POSIXlt(Var) | is.POSIXt(Var)) & (DatesToNowMinusDate | DatesToCyclicMonth | DatesToCyclicDayOfWeek | DatesToCyclicDayOfMonth | DatesToCyclicDayOfYear)
-      )) %>%
+    )) %>%
     select_if(function(Var) !is.Date(Var) & !is.POSIXct(Var) & !is.POSIXlt(Var) & !is.POSIXt(Var)) %>%
     mutate_if(function(x) is.factor(x) | is.logical(x), as.numeric) #It's already ordered because of select_if()
 
@@ -469,21 +469,22 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
         if (CorrVarOrder == "AB") {
           NewOrder <- (CorDS %>% names %>% sort(index.return = TRUE))$ix
         } else {
-          NewOrder <- (CorDS %>% {
-            if (is.not.null(GroupBy)) (.) %>% group_by(VarDF[FilteredIndx, ] %>% pull(!!sym(GroupBy))) else (.)
-          } %>%
-            {
-              if (IsTimeSeries) {
-                (.) %>% tidyr::fill(everything(), .direction = "downup") #Timeseries should be ordered ascending, so the oldest value is 1st, and you fill down missing values, then up
-              } else {
-                (.) %>% mutate_all(function(x) ifelse(is.na(x), mean(x, na.rm = TRUE), x))
-              }
-            } %>%
-            ungroup() %>%
-            select_if(is.numeric) %>%
-            as.matrix() %>%
-            seriate(CorrVarOrder, margin = 2)
-                       )[[1]] %>% as.numeric()
+          NewOrder <- (CorDS %>%
+                         {
+                           if (is.not.null(GroupBy)) (.) %>% group_by(VarDF[FilteredIndx, ] %>% pull(!!sym(GroupBy))) else (.)
+                         } %>%
+                         {
+                           if (IsTimeSeries) {
+                             (.) %>% tidyr::fill(everything(), .direction = "downup") #Timeseries should be ordered ascending, so the oldest value is 1st, and you fill down missing values, then up
+                           } else {
+                             (.) %>% mutate_all(function(x) ifelse(is.na(x), mean(x, na.rm = TRUE), x))
+                           }
+                         } %>%
+                         ungroup() %>%
+                         select_if(is.numeric) %>%
+                         as.matrix() %>%
+                         seriate(CorrVarOrder, margin = 2)
+          )[[1]] %>% as.numeric()
         }
       }
     }, error = function(e) {
@@ -519,8 +520,8 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
           if (CurCorDSNROW > 2) {
             return(cor.test(CorDS %>% pull(!!Comb[[1]]), CorDS %>% pull(!!Comb[[2]]), conf.level = SignificanceLevel, method = "pearson")$p.value)
           }
-            return(NA)
-          })
+          return(NA)
+        })
         PearsonCorPVal <- t(PearsonCorPVal) #But because R assigns values to a matrix by column isntead of by row, we counter that by assigning on lower.tri and then transposing.
         PearsonCorPVal[lower.tri(PearsonCorPVal)] <- t(PearsonCorPVal)[lower.tri(PearsonCorPVal)]
 
@@ -536,8 +537,8 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
           PearsonCorOrderedPVal <- PearsonCorPVal[NewOrder, NewOrder]
           PearsonCorOrderedPlot[is.na(PearsonCorOrderedPVal)] <- NA #If a p-value is non-calculable we might have just 2 points and show 100% correlation, but it's bogus!
         } else {
-            PearsonCorOrderedPVal <- NULL
-            }
+          PearsonCorOrderedPVal <- NULL
+        }
       }, error = function(e) {
         PearsonCorPVal <- NULL
         PearsonCorOrderedPVal <- NULL
@@ -576,8 +577,8 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
         if (CurCorDSNROW > 2) {
           return(cor.test(CorDS %>% pull(!!Comb[[1]]), CorDS %>% pull(!!Comb[[2]]), conf.level = SignificanceLevel, method = "spearman")$p.value)
         }
-          return(NA)
-        })
+        return(NA)
+      })
       SpearmanCorPVal <- t(SpearmanCorPVal) #But because R assigns values to a matrix by column isntead of by row, we counter that by assigning on lower.tri and then transposing.
       SpearmanCorPVal[lower.tri(SpearmanCorPVal)] <- t(SpearmanCorPVal)[lower.tri(SpearmanCorPVal)]
 
@@ -593,7 +594,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
         SpearmanCorOrderedPVal <- SpearmanCorPVal[NewOrder, NewOrder]
         SpearmanCorOrderedPlot[is.na(SpearmanCorOrderedPVal)] <- NA #If a p-value is non-calculable we might have just 2 points and show 100% correlation, but it's bogus!
       } else {
-          SpearmanCorOrderedPVal <- NULL
+        SpearmanCorOrderedPVal <- NULL
       }
     } else {
       SpearmanCorPVal <- NULL
@@ -813,7 +814,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
             aes(x = !!sym(CatVarName)) +
             geom_bar(aes(fill = !!sym(CatVarName))) +
             geom_text(stat = 'count', aes(label = ..count..), vjust = -.25) #+ #Always shows 100%
-            # geom_text(stat = "count", aes(label = scales::percent(..prop..), y = ..prop..), vjust = +.75)
+          # geom_text(stat = "count", aes(label = scales::percent(..prop..), y = ..prop..), vjust = +.75)
         })
       names(BarChartGraphs) <- NonNumericDSColNames %>% setdiff(c("DOY", "DOM"))
 
@@ -854,10 +855,10 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       }
 
       if(ShowGraphs) {
-          grid.arrange(grobs = lapply(NonNumericDSColNames %>% setdiff(c("DOY", "DOM")) %>% setdiff(GroupBy), function(CatVarName) {
-            ggplotGrob(BarChartGraphsPerGroup[[CatVarName]])
-          }),
-          nrow = round(sqrt(NROW(NonNumericDSColNames %>% setdiff(c("DOY", "DOM")) %>% setdiff(GroupBy)))))
+        grid.arrange(grobs = lapply(NonNumericDSColNames %>% setdiff(c("DOY", "DOM")) %>% setdiff(GroupBy), function(CatVarName) {
+          ggplotGrob(BarChartGraphsPerGroup[[CatVarName]])
+        }),
+        nrow = round(sqrt(NROW(NonNumericDSColNames %>% setdiff(c("DOY", "DOM")) %>% setdiff(GroupBy)))))
       }
     }
 
@@ -1019,9 +1020,8 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
                     ggtitle(paste0(GroupBy, ": ", CurGroup)) +
                     {if (is.not.null(BoxplotPointsColourVar)) {
                       geom_jitter(aes(colour = BoxplotPointsColourVar[CurGroupFilterIndx[[CurGroup]]]), shape = 16, position = position_jitter(0.2), size = BoxPlotPointSize, alpha = BoxPlotPointAlpha)
-                     }
-                     else {
-                       geom_jitter(shape = 16, position = position_jitter(0.2), colour = "red", size = BoxPlotPointSize, alpha = BoxPlotPointAlpha)
+                    } else {
+                      geom_jitter(shape = 16, position = position_jitter(0.2), colour = "red", size = BoxPlotPointSize, alpha = BoxPlotPointAlpha)
                     }} +
                     {if (is.not.null(BoxplotPointsColourVar)) scale_colour_gradient(low = "#FF0000", high = "#0000FF", limits = c(min(BoxplotPointsColourVar), max(BoxplotPointsColourVar))) else NULL} +
                     {if (is.not.null(BoxplotPointsColourVar)) labs(colour = ColourVarName) else NULL}
@@ -1118,16 +1118,12 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
 
       TimeProgressionPlots <-
         lapply(NumericDSColNames %>% setdiff(ExcludeFromTimeseries), function(NumVarName) {
-          CurPlot <- ggplot(data = TimeseriesDS %>%
-                                    select(one_of(c(TimeFlowVarName, NumVarName, DependentVar, paste0(DependentVar, "."), BoxplotPointsColourVar, "Grp"))) %>%
-                                    {
-                                      if (is.not.null(DateBreaks)) {
-                                        . %<>% mutate(!!sym(TimeFlowVarName) := as.Date(!!sym(TimeFlowVarName)))
-                                      }
-                                      .
-                                    },
-                            aes(x = !!sym(TimeFlowVarName), y = !!sym(NumVarName))
-                            ) +
+          CurDS <- TimeseriesDS %>% select(one_of(c(TimeFlowVarName, NumVarName, DependentVar, paste0(DependentVar, "."), BoxplotPointsColourVar, "Grp")))
+          if (is.not.null(DateBreaks)) {
+            CurDS %<>% mutate(!!sym(TimeFlowVarName) := as.Date(!!sym(TimeFlowVarName)))
+          }
+
+          CurPlot <- ggplot(data = CurDS, aes(x = !!sym(TimeFlowVarName), y = !!sym(NumVarName))) +
             geom_point(size = 0.5, alpha = 0.6) +
             geom_line(size = 0.1, color = "black", alpha = 0.3)
 
@@ -1364,69 +1360,69 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
       if (is.not.null(DependentVar) && NROW(NumericDSColNames %>% setdiff(ExcludeFromTimeseries)) > 0 && DependentVar %in% NumericDSColNames %>% setdiff(ExcludeFromTimeseries)) {
         if (Verbose) cat(toString(now()), "Building Cross-Correlation Plots\n")
 
-          CrossCorrelationPlots <-
+        CrossCorrelationPlots <-
+          lapply(StatInferNumGraphsColNames %>% setdiff(ExcludeFromTimeseries), function(NumVarName) {
+            tryCatch({
+              CurCrossCorPlot <- forecast::ggCcf(
+                TimeseriesDS %>% pull(NumVarName),
+                TimeseriesDS %>% pull(DependentVar),
+                lag.max = TimeseriesMaxLag,
+                type = c("correlation"),
+                plot = TRUE,
+                na.action = na.contiguous
+              )
+              if ((CurCrossCorPlot$data %>% NROW()) == 0) {
+                stop("Probably not enough data to plot")
+              }
+              CurCrossCorPlot <- CurCrossCorPlot + ggtitle(paste0(NumVarName, " VS ", DependentVar))
+              return(CurCrossCorPlot)
+
+            }, error = function(e) {
+              CurCrossCorPlot <- ggplot() + ggtitle(paste0(NumVarName, ": Probably not enough data to plot"), subtitle = e)
+              return(CurCrossCorPlot)
+            })
+          })
+        names(CrossCorrelationPlots) <- StatInferNumGraphsColNames %>% setdiff(ExcludeFromTimeseries)
+
+        if (ShowGraphs) {
+          grid.arrange(grobs = lapply(StatInferNumGraphsColNames %>% setdiff(ExcludeFromTimeseries), function(VarName) {
+            ggplotGrob(CrossCorrelationPlots[[VarName]])
+          }),
+          nrow = round(sqrt(NROW(StatInferNumGraphsColNames %>% setdiff(ExcludeFromTimeseries)))))
+        }
+
+        if (!ExludeCovariances) {
+          if (Verbose) cat(toString(now()), "Building Cross-Covariance Plots\n")
+          CrossCovariancePlots <-
             lapply(StatInferNumGraphsColNames %>% setdiff(ExcludeFromTimeseries), function(NumVarName) {
               tryCatch({
-                CurCrossCorPlot <- forecast::ggCcf(
+                CurCrossCovPlot <- forecast::ggCcf(
                   TimeseriesDS %>% pull(NumVarName),
                   TimeseriesDS %>% pull(DependentVar),
                   lag.max = TimeseriesMaxLag,
-                  type = c("correlation"),
+                  type = c("covariance"),
                   plot = TRUE,
                   na.action = na.contiguous
                 )
-                if ((CurCrossCorPlot$data %>% NROW()) == 0) {
+                if ((CurCrossCovPlot$data %>% NROW()) == 0) {
                   stop("Probably not enough data to plot")
                 }
-                CurCrossCorPlot <- CurCrossCorPlot + ggtitle(paste0(NumVarName, " VS ", DependentVar))
-                return(CurCrossCorPlot)
-
+                CurCrossCovPlot <- CurCrossCovPlot + ggtitle(paste0(NumVarName, " VS ", DependentVar))
+                return(CurCrossCovPlot)
               }, error = function(e) {
-                CurCrossCorPlot <- ggplot() + ggtitle(paste0(NumVarName, ": Probably not enough data to plot"), subtitle = e)
-                return(CurCrossCorPlot)
+                CurCrossCovPlot <- ggplot() + ggtitle(paste0(NumVarName, ": Probably not enough data to plot"), subtitle = e)
+                return(CurCrossCovPlot)
               })
             })
-          names(CrossCorrelationPlots) <- StatInferNumGraphsColNames %>% setdiff(ExcludeFromTimeseries)
+          names(CrossCovariancePlots) <- StatInferNumGraphsColNames %>% setdiff(ExcludeFromTimeseries)
 
           if (ShowGraphs) {
             grid.arrange(grobs = lapply(StatInferNumGraphsColNames %>% setdiff(ExcludeFromTimeseries), function(VarName) {
-              ggplotGrob(CrossCorrelationPlots[[VarName]])
+              ggplotGrob(CrossCovariancePlots[[VarName]])
             }),
             nrow = round(sqrt(NROW(StatInferNumGraphsColNames %>% setdiff(ExcludeFromTimeseries)))))
           }
-
-          if (!ExludeCovariances) {
-            if (Verbose) cat(toString(now()), "Building Cross-Covariance Plots\n")
-            CrossCovariancePlots <-
-              lapply(StatInferNumGraphsColNames %>% setdiff(ExcludeFromTimeseries), function(NumVarName) {
-                tryCatch({
-                  CurCrossCovPlot <- forecast::ggCcf(
-                    TimeseriesDS %>% pull(NumVarName),
-                    TimeseriesDS %>% pull(DependentVar),
-                    lag.max = TimeseriesMaxLag,
-                    type = c("covariance"),
-                    plot = TRUE,
-                    na.action = na.contiguous
-                  )
-                  if ((CurCrossCovPlot$data %>% NROW()) == 0) {
-                    stop("Probably not enough data to plot")
-                  }
-                  CurCrossCovPlot <- CurCrossCovPlot + ggtitle(paste0(NumVarName, " VS ", DependentVar))
-                  return(CurCrossCovPlot)
-                }, error = function(e) {
-                  CurCrossCovPlot <- ggplot() + ggtitle(paste0(NumVarName, ": Probably not enough data to plot"), subtitle = e)
-                  return(CurCrossCovPlot)
-                })
-              })
-            names(CrossCovariancePlots) <- StatInferNumGraphsColNames %>% setdiff(ExcludeFromTimeseries)
-
-            if (ShowGraphs) {
-              grid.arrange(grobs = lapply(StatInferNumGraphsColNames %>% setdiff(ExcludeFromTimeseries), function(VarName) {
-                ggplotGrob(CrossCovariancePlots[[VarName]])
-              }),
-              nrow = round(sqrt(NROW(StatInferNumGraphsColNames %>% setdiff(ExcludeFromTimeseries)))))
-            }
-          }
+        }
 
       } #/Crosscorrelations for Versus Numerical Dependent
 

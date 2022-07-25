@@ -20,6 +20,7 @@ DescriptiveStats(
   IsTimeSeries = FALSE,
   GroupBy = NULL,
   TimeFlowVar = NULL,
+  HideLegendInPerGroup = FALSE,
   BoxPlotPointSize = 0.4,
   BoxPlotPointAlpha = 0.1,
   SampleIfNRowGT = 10000,
@@ -35,7 +36,6 @@ DescriptiveStats(
   DatesToCyclicDayOfYear = FALSE,
   DatesToYearCat = FALSE,
   DatesToMonthCat = FALSE,
-  DatesToDayCat = FALSE,
   DatesToDayOfWeekCat = FALSE,
   DatesToDayOfMonthCat = FALSE,
   DatesToDayOfYearCat = FALSE,
@@ -81,6 +81,8 @@ DescriptiveStats(
 \item{GroupBy}{String. If you want to get statistics per group in addition to the general ones, then mention which Column of VarDF should be used as the grouping variable}
 
 \item{TimeFlowVar}{String or Date/Numeric Vector. The variable name to be used as X-Axis on TimeFlow plots. The Variable corresponding to this string can be Date or Numeric}
+
+\item{HideLegendInPerGroup}{Boolean. If there are tens of categories in the per group variable, then the legend takes too much space.}
 
 \item{BoxPlotPointSize}{Numeric. How big or small you want the dots on the Boxplots to be. Usually a value between 0.1 and 1. The more the rows, the less the value here}
 

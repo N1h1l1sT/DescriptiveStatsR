@@ -50,6 +50,7 @@
 #' @param IsTimeSeries Boolean. If FALSE then no Timeseries specific statistics or plots will be calculated as it would show nonsense if the dataset is not really a time-series
 #' @param GroupBy String. If you want to get statistics per group in addition to the general ones, then mention which Column of VarDF should be used as the grouping variable
 #' @param TimeFlowVar String or Date/Numeric Vector. The variable name to be used as X-Axis on TimeFlow plots. The Variable corresponding to this string can be Date or Numeric
+#' @param HideLegendInPerGroup Boolean. If there are tens of categories in the per group variable, then the legend takes too much space.
 #' @param CorrVarOrder String. AB - Alphabetical, hclust - Order based on Hierarchical cluster analysis, BEA - Bond Energy Algorithm to maximize the measure of effectiveness (ME), PCA - First principal component or angle on the projection on the first two principal components, TSP - Travelling sales person solver to maximize ME
 #' @param TimeseriesMaxLag Integer. Max lag for Auto Correlation/Covariance plots.
 #' @param BoxPlotPointSize Numeric. How big or small you want the dots on the Boxplots to be. Usually a value between 0.1 and 1. The more the rows, the less the value here
@@ -92,11 +93,11 @@
 #' MTCarsStats <- DS %>% DescriptiveStats(CalculateGraphs = TRUE, DependentVar = "mpg", IsTimeSeries = TRUE, GroupBy = "gear", CorrVarOrder = "PCA")
 DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, RoundAt = 2, AbbrevStrLevelsAfterNcount = 5,
                              AllHistsOn1Page = TRUE, AllBoxplotsOn1Page = FALSE, AllBarChartsOn1Page = TRUE, DependentVar = NULL, ShowGraphs = FALSE, BoxplotPointsColourVar = NULL,
-                             NoPrints = FALSE, IsTimeSeries = FALSE, GroupBy = NULL, TimeFlowVar = NULL,
+                             NoPrints = FALSE, IsTimeSeries = FALSE, GroupBy = NULL, TimeFlowVar = NULL, HideLegendInPerGroup = FALSE,
                              BoxPlotPointSize = 0.4, BoxPlotPointAlpha = 0.1, SampleIfNRowGT = 10000, SeedForSampling = NULL,
                              CalcPValues = TRUE, SignificanceLevel = 0.01, CorrVarOrder = "PCA", TimeseriesMaxLag = NULL, DatesToNowMinusDate = FALSE,
                              DatesToCyclicMonth = FALSE, DatesToCyclicDayOfWeek = FALSE, DatesToCyclicDayOfMonth = FALSE, DatesToCyclicDayOfYear = FALSE,
-                             DatesToYearCat = FALSE, DatesToMonthCat = FALSE, DatesToDayCat = FALSE, DatesToDayOfWeekCat = FALSE, DatesToDayOfMonthCat = FALSE,
+                             DatesToYearCat = FALSE, DatesToMonthCat = FALSE, DatesToDayOfWeekCat = FALSE, DatesToDayOfMonthCat = FALSE,
                              DatesToDayOfYearCat = FALSE, DatesToHourCat = FALSE, DatesToMinuteCat = FALSE,
                              ExcludeTaperedAutocor = FALSE, MaxTaperedRows = 250, VarsToExcludeFromTimeseries = NULL, ExludeCovariances = TRUE,
                              DateBreaks = NULL, DateLabels = NULL, DateTextAngle = 0, Verbose = NULL) {
@@ -186,7 +187,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
                            BoxPlotPointSize = BoxPlotPointSize, BoxPlotPointAlpha = BoxPlotPointAlpha, SampleIfNRowGT = SampleIfNRowGT, SeedForSampling = SeedForSampling,
                            CalcPValues = CalcPValues, SignificanceLevel = SignificanceLevel, CorrVarOrder = CorrVarOrder, TimeseriesMaxLag = TimeseriesMaxLag,DatesToNowMinusDate = FALSE,
                            DatesToCyclicMonth = FALSE, DatesToCyclicDayOfWeek = FALSE, DatesToCyclicDayOfMonth = FALSE, DatesToCyclicDayOfYear = DatesToCyclicDayOfYear,
-                           DatesToYearCat = DatesToYearCat, DatesToMonthCat = DatesToMonthCat, DatesToDayCat = DatesToDayCat, DatesToDayOfWeekCat = DatesToDayOfWeekCat,
+                           DatesToYearCat = DatesToYearCat, DatesToMonthCat = DatesToMonthCat, DatesToDayOfWeekCat = DatesToDayOfWeekCat,
                            DatesToDayOfMonthCat = DatesToDayOfMonthCat,
                            DatesToDayOfYearCat = DatesToDayOfYearCat, DatesToHourCat = DatesToHourCat, DatesToMinuteCat = DatesToMinuteCat,
                            ExcludeTaperedAutocor = ExcludeTaperedAutocor, MaxTaperedRows = MaxTaperedRows, VarsToExcludeFromTimeseries = VarsToExcludeFromTimeseries,
@@ -813,8 +814,9 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
           ggplot(data = NonNumericDS) +
             aes(x = !!sym(CatVarName)) +
             geom_bar(aes(fill = !!sym(CatVarName))) +
-            geom_text(stat = 'count', aes(label = ..count..), vjust = -.25) #+ #Always shows 100%
-          # geom_text(stat = "count", aes(label = scales::percent(..prop..), y = ..prop..), vjust = +.75)
+            geom_text(stat = 'count', aes(label = ..count..), vjust = -.25) + #Always shows 100%
+          # geom_text(stat = "count", aes(label = scales::percent(..prop..), y = ..prop..), vjust = +.75) +
+            {if (HideLegendInPerGroup) theme(legend.position="none") else NULL}
         })
       names(BarChartGraphs) <- NonNumericDSColNames %>% setdiff(c("DOY", "DOM"))
 
@@ -932,7 +934,8 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
                   geom_jitter(shape = 16, position = position_jitter(0.2), colour = "red", size = BoxPlotPointSize, alpha = BoxPlotPointAlpha)
                 }} +
                 {if (is.not.null(BoxplotPointsColourVar)) scale_colour_gradient(low = "#FF0000", high = "#0000FF") else NULL} +
-                {if (is.not.null(BoxplotPointsColourVar)) labs(colour = ColourVarName) else NULL}
+                {if (is.not.null(BoxplotPointsColourVar)) labs(colour = ColourVarName) else NULL} +
+                {if (HideLegendInPerGroup) theme(legend.position="none") else NULL}
             })
           names(StatInferCatGraphs) <- StatInferCatGraphsColNames
 
@@ -984,7 +987,8 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
             lapply(StatInferNumGraphsColNames, function(CatVar) {
               ggplot(data = NumStatInfDS) +
                 aes(x = !!sym(DependentVar), y = !!sym(CatVar)) + #Dependent on X-axis as it is categorical
-                geom_boxplot(aes(fill = !!sym(DependentVar)), na.rm = TRUE)
+                geom_boxplot(aes(fill = !!sym(DependentVar)), na.rm = TRUE) +
+                {if (HideLegendInPerGroup) theme(legend.position="none") else NULL}
             })
           names(StatInferNumGraphs) <- StatInferNumGraphsColNames
 
@@ -1113,6 +1117,7 @@ DescriptiveStats <- function(VarDF, CalculateGraphs, IncludeInteger = TRUE, Roun
           TimeseriesDS$TimeFlow <- TimeFlowVar[FilteredIndx]
         }
       } else {
+        TimeFlowVarName <- "TimeFlow"
         TimeseriesDS %<>% mutate(TimeFlow = 1:n())
       }
 

@@ -53,15 +53,15 @@ SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, Num
   if (is.not.null(DescriptiveStatsVar$PerGroupDescrStats)) {
     for (CurGroup in names(DescriptiveStatsVar$PerGroupDescrStats)) {
       SaveDescrStats(DescriptiveStatsVar$PerGroupDescrStats[[CurGroup]],
-                     path_stats = paste0(file.path(path_stats, "Per Group/", CurGroup), "/"),
-                     NumWidth = NumWidth,
-                     NumHeight = NumHeight,
-                     CatWidth = CatWidth,
-                     CatHeight = CatHeight,
-                     TimeProgressionWidth = TimeProgressionWidth,
-                     TimeProgressionHeight = TimeProgressionHeight,
-                     TimeSeriesWidth = TimeSeriesWidth,
-                     TimeSeriesHeight = TimeSeriesHeight
+                     path_stats            = paste0(file.path(path_stats, "Per Group/", CurGroup), "/"),
+                     NumWidth              = NumWidth,
+                     NumHeight             = NumHeight,
+                     CatWidth              = CatWidth,
+                     CatHeight             = CatHeight, #Not TimeProgressionWidth,TimeProgressionHeight because groups are eliminated and it's going to be smaller than the original
+                     TimeProgressionWidth  = ifelse(TimeSeriesWidth < TimeProgressionWidth && TimeSeriesHeight < TimeProgressionHeight, TimeSeriesWidth, TimeProgressionWidth),
+                     TimeProgressionHeight = ifelse(TimeSeriesWidth < TimeProgressionWidth && TimeSeriesHeight < TimeProgressionHeight, TimeSeriesHeight, TimeProgressionHeight),
+                     TimeSeriesWidth       = TimeSeriesWidth,
+                     TimeSeriesHeight      = TimeSeriesHeight
       )
     }
   }

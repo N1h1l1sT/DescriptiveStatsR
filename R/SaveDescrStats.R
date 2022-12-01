@@ -9,6 +9,8 @@
 #' @param NumHeight An Integer. Height (in pixels) for Numerical Variables' plots
 #' @param CatWidth An Integer. Width (in pixels) for Categorical Variables' plots
 #' @param CatHeight An Integer. Height (in pixels) for Categorical Variables' plots
+#' @param TimeProgressionWidth An Integer. Width (in pixels) for the Time Progression plot
+#' @param TimeProgressionHeight An Integer. Height (in pixels) for the Time Progression plot
 #' @param TimeSeriesWidth An Integer. Width (in pixels) for the Timeseries plot
 #' @param TimeSeriesHeight An Integer. Height (in pixels) for the Timeseries plot
 #' @param CorrelationsWidth An Integer. Width (in pixels) for the Correlation plots
@@ -23,7 +25,8 @@
 #'
 #' #Saving everything to a folder on our Hard Drive
 #' MTCarsStats %>% SaveDescrStats("MTCarsFolder")
-SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, NumHeight = 800, CatWidth = 1300, CatHeight = 800, TimeSeriesWidth = NULL, TimeSeriesHeight = NULL, CorrelationsWidth = NULL, CorrelationsHeight = NULL) {
+SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, NumHeight = 800, CatWidth = 1300, CatHeight = 800, TimeProgressionWidth = NULL, TimeProgressionHeight = NULL,
+                           TimeSeriesWidth = NULL, TimeSeriesHeight = NULL, CorrelationsWidth = NULL, CorrelationsHeight = NULL) {
   if (!dir.exists(path_stats)) {
     if (endsWith(path_stats, "/") | endsWith(path_stats, "\\")) path_stats <- substr(path_stats, 1, (nchar(path_stats)-1))
 
@@ -50,18 +53,22 @@ SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, Num
   if (is.not.null(DescriptiveStatsVar$PerGroupDescrStats)) {
     for (CurGroup in names(DescriptiveStatsVar$PerGroupDescrStats)) {
       SaveDescrStats(DescriptiveStatsVar$PerGroupDescrStats[[CurGroup]],
-                       path_stats = paste0(file.path(path_stats, "Per Group/", CurGroup), "/"),
-                       NumWidth = NumWidth,
-                       NumHeight = NumHeight,
-                       CatWidth = CatWidth,
-                       CatHeight = CatHeight,
-                       TimeSeriesWidth = TimeSeriesWidth,
-                       TimeSeriesHeight = TimeSeriesHeight
+                     path_stats = paste0(file.path(path_stats, "Per Group/", CurGroup), "/"),
+                     NumWidth = NumWidth,
+                     NumHeight = NumHeight,
+                     CatWidth = CatWidth,
+                     CatHeight = CatHeight,
+                     TimeProgressionWidth = TimeProgressionWidth,
+                     TimeProgressionHeight = TimeProgressionHeight,
+                     TimeSeriesWidth = TimeSeriesWidth,
+                     TimeSeriesHeight = TimeSeriesHeight
       )
     }
   }
 
   if (Right(path_stats, 1) != "/" & Right(path_stats, 1) != "\\") path_stats <- paste0(path_stats, "/")
+  if (is.null(TimeProgressionWidth)) TimeProgressionWidth <- NumWidth * 1.5
+  if (is.null(TimeProgressionHeight)) TimeProgressionHeight <- NumHeight * 1.25
   if (is.null(TimeSeriesWidth)) TimeSeriesWidth <- NumWidth * 1.5
   if (is.null(TimeSeriesHeight)) TimeSeriesHeight <- NumHeight * 1.25
 
@@ -317,7 +324,7 @@ SaveDescrStats <- function(DescriptiveStatsVar, path_stats, NumWidth = 1300, Num
   ### Time Series Progression Plots
   if (NROW(DescriptiveStatsVar$TimeProgressionPlots) > 0) {
     tryCatch({
-      png(paste0(path_stats, "Time Progression for Numerical Variables.png"), width = TimeSeriesWidth, height = TimeSeriesHeight, units = "px")
+      png(paste0(path_stats, "Time Progression for Numerical Variables.png"), width = TimeProgressionWidth, height = TimeProgressionHeight, units = "px")
       suppressWarnings(
         grid.arrange(grobs = lapply(names(DescriptiveStatsVar$TimeProgressionPlots), function(x) {
           ggplotGrob(DescriptiveStatsVar$TimeProgressionPlots[[x]])

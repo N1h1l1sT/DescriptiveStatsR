@@ -11,6 +11,8 @@ SaveDescrStats(
   NumHeight = 800,
   CatWidth = 1300,
   CatHeight = 800,
+  TimeProgressionWidth = NULL,
+  TimeProgressionHeight = NULL,
   TimeSeriesWidth = NULL,
   TimeSeriesHeight = NULL,
   CorrelationsWidth = NULL,
@@ -29,6 +31,10 @@ SaveDescrStats(
 \item{CatWidth}{An Integer. Width (in pixels) for Categorical Variables' plots}
 
 \item{CatHeight}{An Integer. Height (in pixels) for Categorical Variables' plots}
+
+\item{TimeProgressionWidth}{An Integer. Width (in pixels) for the Time Progression plot}
+
+\item{TimeProgressionHeight}{An Integer. Height (in pixels) for the Time Progression plot}
 
 \item{TimeSeriesWidth}{An Integer. Width (in pixels) for the Timeseries plot}
 
